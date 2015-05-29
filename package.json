@@ -1,0 +1,34 @@
+{
+  "name": "hubot-jira-bug",
+  "description": "A hubot script to file a JIRA bug",
+  "version": "1.0.0",
+  "authors": [
+    "Nino D'Aversa <nino@ndaversa.com>"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "hubot",
+    "hubot-scripts",
+    "slack",
+    "jira",
+    "bug"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:ndaversa/hubot-jira-bug.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ndaversa/hubot-jira-bug/issues"
+  },
+  "dependencies": {
+    "coffee-script": "~1.6",
+    "lodash": "^3.9.3"
+  },
+  "main": "index.coffee",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
