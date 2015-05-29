@@ -1,3 +1,3 @@
-# Hubot Jira Bug
+# Hubot Jira Bot
 
-A hubot script to file a JIRA bug
+A hubot script to create JIRA tickets
