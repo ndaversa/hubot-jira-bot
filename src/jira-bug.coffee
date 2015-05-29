@@ -32,7 +32,7 @@ module.exports = (robot) ->
       user = msg.message.user.name
       text = msg.match[1]
       project = projects[room]
-      return msg.reply "Bugs most be submitted in one of the following rooms: " + _(projects).keys() if not project
+      return msg.reply "Bugs must be submitted in of the following project channels: " + _(projects).keys() if not project
 
       issue = JSON.stringify
         fields:
