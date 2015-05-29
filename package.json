@@ -1,6 +1,6 @@
 {
-  "name": "hubot-jira-bug",
-  "description": "A hubot script to file a JIRA bug",
+  "name": "hubot-jira-bot",
+  "description": "A hubot script to create JIRA tickets",
   "version": "1.0.4",
   "authors": [
     "Nino D'Aversa <nino@ndaversa.com>"
@@ -11,14 +11,15 @@
     "hubot-scripts",
     "slack",
     "jira",
+    "task",
     "bug"
   ],
   "repository": {
     "type": "git",
-    "url": "git@github.com:ndaversa/hubot-jira-bug.git"
+    "url": "git@github.com:ndaversa/hubot-jira-bot.git"
   },
   "bugs": {
-    "url": "https://github.com/ndaversa/hubot-jira-bug/issues"
+    "url": "https://github.com/ndaversa/hubot-jira-bot/issues"
   },
   "dependencies": {
     "coffee-script": "~1.6",
@@ -31,7 +32,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "homepage": "https://github.com/ndaversa/hubot-jira-bug",
+  "homepage": "https://github.com/ndaversa/hubot-jira-bot",
   "devDependencies": {},
   "author": "Nino D'Aversa <nino@ndaversa.com> (http://ndaversa.com)"
 }
