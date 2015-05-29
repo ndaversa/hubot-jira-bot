@@ -49,12 +49,11 @@ module.exports = (robot) ->
         .auth(auth)
         .post(issue) (err, res, body) ->
           try
-            if res.statusCode is 201 and res.statusMessage is "Created"
+            if res.statusCode is 201
               json = JSON.parse body
               msg.reply "Issue created: #{jiraUrl}/browse/#{json.key}"
-              console.log "statusCode:", res.statusCode, "statusMessage:", res.statusMessage, "err:", err, "body:", body
             else
               msg.reply "Unable to file issue please notify @ndaversa"
-              console.log "statusCode:", res.statusCode, "statusMessage:", res.statusMessage, "err:", err, "body:", body
+              console.log "statusCode:", res.statusCode, "err:", err, "body:", body
           catch error
             msg.reply "Unable to file issue: #{error}"
