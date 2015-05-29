@@ -52,8 +52,9 @@ module.exports = (robot) ->
             if res.statusCode is 201 and res.statusMessage is "Created"
               json = JSON.parse body
               msg.reply "Issue created: #{jiraUrl}/browse/#{json.key}"
+              console.log "statusCode:", res.statusCode, "statusMessage:", res.statusMessage, "err:", err, "body:", body
             else
               msg.reply "Unable to file issue please notify @ndaversa"
-              console.log err, body
+              console.log "statusCode:", res.statusCode, "statusMessage:", res.statusMessage, "err:", err, "body:", body
           catch error
             msg.reply "Unable to file issue: #{error}"
