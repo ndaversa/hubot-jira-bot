@@ -1,6 +1,6 @@
 {
   "name": "hubot-jira-bot",
-  "description": "A hubot script to create JIRA tickets",
+  "description": "A hubot script to create JIRA tickets and listen for ticket mentions",
   "version": "1.1.1",
   "authors": [
     "Nino D'Aversa <nino@ndaversa.com>"
@@ -22,8 +22,7 @@
     "url": "https://github.com/ndaversa/hubot-jira-bot/issues"
   },
   "dependencies": {
-    "coffee-script": "~1.6",
-    "lodash": "^3.9.3"
+    "coffee-script": "~1.6"
   },
   "main": "index.coffee",
   "directories": {

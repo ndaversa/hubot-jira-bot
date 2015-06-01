@@ -1,8 +1,9 @@
 # Description:
 #  Quickly file JIRA tickets with hubot
+#  Also listens for mention of tickets and responds with information
 #
 # Dependencies:
-#   lodash
+#   None
 #
 # Configuration:
 #   HUBOT_JIRA_URL (format: "https://jira-domain.com:9090")
@@ -17,10 +18,11 @@
 # Author:
 #   ndaversa
 
-_ = require "lodash"
-
 module.exports = (robot) ->
   projects = JSON.parse process.env.HUBOT_JIRA_PROJECTS_MAP
+  prefixes = (key for team, key of projects).reduce (x,y) -> x + "-|" + y
+  jiraPattern = eval "/\\b(" + prefixes + "-)(\\d+)\\b/gi"
+
   jiraUrl = process.env.HUBOT_JIRA_URL
   jiraUsername = process.env.HUBOT_JIRA_USERNAME
   jiraPassword = process.env.HUBOT_JIRA_PASSWORD
@@ -38,7 +40,7 @@ module.exports = (robot) ->
           issuetype:
             name: type
 
-      robot.http(jiraUrl + "/rest/api/2/issue")
+      robot.http("#{jiraUrl}/rest/api/2/issue")
         .header("Content-Type", "application/json")
         .auth(auth)
         .post(issue) (err, res, body) ->
@@ -56,11 +58,42 @@ module.exports = (robot) ->
     robot.respond /bug (.+)/i, (msg) ->
       room = msg.message.room
       project = projects[room]
-      return msg.reply "Bugs must be submitted in one of the following project channels: " + _(projects).keys() if not project
+      return msg.reply "Bugs must be submitted in one of the following project channels:" + (" \##{team}" for team, key of projects) if not project
       report project, "Bug", msg
 
     robot.respond /task (.+)/i, (msg) ->
       room = msg.message.room
       project = projects[room]
-      return msg.reply "Tasks must be submitted in one of the following project channels: " + _(projects).keys() if not project
+      return msg.reply "Tasks must be submitted in one of the following project channels:" + (" \##{team}" for team, key of projects) if not project
       report project, "Task", msg
+
+    robot.hear jiraPattern, (msg) ->
+      for issue in msg.match
+        robot.http("#{jiraUrl}/rest/api/2/issue/#{issue.toUpperCase()}")
+          .auth(auth)
+          .get() (err, res, body) ->
+            try
+              json = JSON.parse body
+              key = json.key
+
+              message = """
+                        *[#{key}] - #{json.fields.summary}*
+                        Status: #{json.fields.status.name}
+                        """
+
+              if  json.fields.assignee and json.fields.assignee.displayName
+                message += "\nAssignee: #{json.fields.assignee.displayName}\n"
+              else
+                message += "\nUnassigned\n"
+
+              message += """
+                         Reporter: #{json.fields.reporter.displayName}
+                         #{jiraUrl}/browse/#{key}
+                         """
+
+              msg.send message
+            catch error
+              try
+               msg.send "*[Error]* #{json.errorMessages[0]}"
+              catch busted
+                msg.send "*[Error]* #{busted}"
