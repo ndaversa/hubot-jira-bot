@@ -61,13 +61,13 @@ module.exports = (robot) ->
     robot.respond /bug (.+)/i, (msg) ->
       room = msg.message.room
       project = projects[room]
-      return msg.reply "Bugs must be submitted in one of the following project channels:" + (" \##{team}" for team, key of projects) if not project
+      return msg.reply "Bugs must be submitted in one of the following project channels:" + (" <\##{team}>" for team, key of projects) if not project
       report project, "Bug", msg
 
     robot.respond /task (.+)/i, (msg) ->
       room = msg.message.room
       project = projects[room]
-      return msg.reply "Tasks must be submitted in one of the following project channels:" + (" \##{team}" for team, key of projects) if not project
+      return msg.reply "Tasks must be submitted in one of the following project channels:" + (" <\##{team}>" for team, key of projects) if not project
       report project, "Task", msg
 
     robot.hear jiraPattern, (msg) ->
