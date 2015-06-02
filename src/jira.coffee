@@ -52,10 +52,10 @@ module.exports = (robot) ->
               json = JSON.parse body
               msg.send "<@#{msg.message.user.id}> Ticket created: #{jiraUrl}/browse/#{json.key}"
             else
-              msg.send "<@#{msg.message.user.id} Unable to create ticket"
+              msg.send "<@#{msg.message.user.id}> Unable to create ticket"
               console.log "statusCode:", res.statusCode, "err:", err, "body:", body
           catch error
-            msg.send "<@#{msg.message.user.id} Unable to create ticket: #{error}"
+            msg.send "<@#{msg.message.user.id}> Unable to create ticket: #{error}"
             console.log "statusCode:", res.statusCode, "error:", error, "err:", err, "body:", body
 
     robot.respond /bug (.+)/i, (msg) ->
