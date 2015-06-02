@@ -36,7 +36,10 @@ module.exports = (robot) ->
             key: project
           summary: msg.match[1]
           labels: ["triage"]
-          description: "Reported by #{msg.message.user.name} in ##{msg.message.room} on #{robot.adapterName}"
+          description: """
+                       Reported by #{msg.message.user.name} in ##{msg.message.room} on #{robot.adapterName}
+                       https://#{robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}
+                       """
           issuetype:
             name: type
 
@@ -47,12 +50,12 @@ module.exports = (robot) ->
           try
             if res.statusCode is 201
               json = JSON.parse body
-              msg.reply "Ticket created: #{jiraUrl}/browse/#{json.key}"
+              msg.send "<@#{msg.message.user.id}> Ticket created: #{jiraUrl}/browse/#{json.key}"
             else
-              msg.reply "Unable to create ticket please notify @ndaversa"
+              msg.send "<@#{msg.message.user.id} Unable to create ticket"
               console.log "statusCode:", res.statusCode, "err:", err, "body:", body
           catch error
-            msg.reply "Unable to create ticket: #{error} please notify @ndaversa"
+            msg.send "<@#{msg.message.user.id} Unable to create ticket: #{error}"
             console.log "statusCode:", res.statusCode, "error:", error, "err:", err, "body:", body
 
     robot.respond /bug (.+)/i, (msg) ->
