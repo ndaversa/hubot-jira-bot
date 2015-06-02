@@ -77,10 +77,8 @@ module.exports = (robot) ->
           .get() (err, res, body) ->
             try
               json = JSON.parse body
-              key = json.key
-
               message = """
-                        *[#{key}] - #{json.fields.summary}*
+                        *[#{json.key}] - #{json.fields.summary}*
                         Status: #{json.fields.status.name}
                         """
 
@@ -91,10 +89,20 @@ module.exports = (robot) ->
 
               message += """
                          Reporter: #{json.fields.reporter.displayName}
-                         #{jiraUrl}/browse/#{key}
+                         JIRA: #{jiraUrl}/browse/#{json.key}\n
                          """
 
-              msg.send message
+              robot.http("#{jiraUrl}/rest/dev-status/1.0/issue/detail?issueId=#{json.id}&applicationType=github&dataType=branch")
+                .auth(auth)
+                .get() (err, res, body) ->
+                  try
+                    json = JSON.parse body
+                    if json.detail?[0]?.pullRequests
+                      for pr in json.detail[0].pullRequests
+                        message += "PR: #{pr.url}\n"
+                  finally
+                    msg.send message
+
             catch error
               try
                msg.send "*[Error]* #{json.errorMessages[0]}"
