@@ -19,22 +19,25 @@
 #   ndaversa
 
 module.exports = (robot) ->
-  projects = JSON.parse process.env.HUBOT_JIRA_PROJECTS_MAP
-  prefixes = (key for team, key of projects).reduce (x,y) -> x + "-|" + y
-  jiraPattern = eval "/\\b(" + prefixes + "-)(\\d+)\\b/gi"
-
+  debug = process.env.HUBOT_JIRA_DEBUG
   jiraUrl = process.env.HUBOT_JIRA_URL
   jiraUsername = process.env.HUBOT_JIRA_USERNAME
   jiraPassword = process.env.HUBOT_JIRA_PASSWORD
+  projects = JSON.parse process.env.HUBOT_JIRA_PROJECTS_MAP
+
+  prefixes = (key for team, key of projects).reduce (x,y) -> x + "-|" + y
+  jiraPattern = eval "/\\b(" + prefixes + "-)(\\d+)\\b/gi"
 
   if jiraUsername != undefined && jiraUsername.length > 0
     auth = "#{jiraUsername}:#{jiraPassword}"
     report = (project, type, msg) ->
+      console.log project, type, msg if debug
       reporter = null
       robot.http("#{jiraUrl}/rest/api/2/user/search?username=#{msg.message.user.email_address}")
         .header("Content-Type", "application/json")
         .auth(auth)
         .get() (err, res, body) ->
+            console.log body if debug
             try
               user = JSON.parse body
               reporter = user[0] if user and user.length is 1
@@ -59,6 +62,7 @@ module.exports = (robot) ->
                 .header("Content-Type", "application/json")
                 .auth(auth)
                 .post(issue) (err, res, body) ->
+                  console.log body if debug
                   try
                     if res.statusCode is 201
                       json = JSON.parse body
