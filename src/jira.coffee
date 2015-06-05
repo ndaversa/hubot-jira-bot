@@ -30,33 +30,45 @@ module.exports = (robot) ->
   if jiraUsername != undefined && jiraUsername.length > 0
     auth = "#{jiraUsername}:#{jiraPassword}"
     report = (project, type, msg) ->
-      issue = JSON.stringify
-        fields:
-          project:
-            key: project
-          summary: msg.match[1]
-          labels: ["triage"]
-          description: """
-                       Reported by #{msg.message.user.name} in ##{msg.message.room} on #{robot.adapterName}
-                       https://#{robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}
-                       """
-          issuetype:
-            name: type
-
-      robot.http("#{jiraUrl}/rest/api/2/issue")
+      reporter = null
+      robot.http("#{jiraUrl}/rest/api/2/user/search?username=#{msg.message.user.email_address}")
         .header("Content-Type", "application/json")
         .auth(auth)
-        .post(issue) (err, res, body) ->
-          try
-            if res.statusCode is 201
-              json = JSON.parse body
-              msg.send "<@#{msg.message.user.id}> Ticket created: #{jiraUrl}/browse/#{json.key}"
-            else
-              msg.send "<@#{msg.message.user.id}> Unable to create ticket"
-              console.log "statusCode:", res.statusCode, "err:", err, "body:", body
-          catch error
-            msg.send "<@#{msg.message.user.id}> Unable to create ticket: #{error}"
-            console.log "statusCode:", res.statusCode, "error:", error, "err:", err, "body:", body
+        .get() (err, res, body) ->
+            try
+              user = JSON.parse body
+              reporter = user[0] if user and user.length is 1
+            finally
+              issue =
+                fields:
+                  project:
+                    key: project
+                  summary: msg.match[1]
+                  labels: ["triage"]
+                  description: """
+                               Reported by #{msg.message.user.name} in ##{msg.message.room} on #{robot.adapterName}
+                               https://#{robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}
+                               """
+                  issuetype:
+                    name: type
+
+              issue.fields.reporter = reporter if reporter
+              issue = JSON.stringify issue
+
+              robot.http("#{jiraUrl}/rest/api/2/issue")
+                .header("Content-Type", "application/json")
+                .auth(auth)
+                .post(issue) (err, res, body) ->
+                  try
+                    if res.statusCode is 201
+                      json = JSON.parse body
+                      msg.send "<@#{msg.message.user.id}> Ticket created: #{jiraUrl}/browse/#{json.key}"
+                    else
+                      msg.send "<@#{msg.message.user.id}> Unable to create ticket"
+                      console.log "statusCode:", res.statusCode, "err:", err, "body:", body
+                  catch error
+                    msg.send "<@#{msg.message.user.id}> Unable to create ticket: #{error}"
+                    console.log "statusCode:", res.statusCode, "error:", error, "err:", err, "body:", body
 
     robot.respond /bug (.+)/i, (msg) ->
       room = msg.message.room
