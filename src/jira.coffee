@@ -42,16 +42,17 @@ module.exports = (robot) ->
               user = JSON.parse body
               reporter = user[0] if user and user.length is 1
             finally
+              quoteRegex = /`(.*?)`/
               message = msg.match[1]
-              desc = message.match(/"(.*?)"/)[1] if /"(.*?)"/.test(message)
-              message = message.replace(/"(.*?)"/,"") if desc != undefined
+              desc = message.match(quoteRegex)[1] if quoteRegex.test(message)
+              message = message.replace(quoteRegex, "") if desc
               issue =
                 fields:
                   project:
                     key: project
                   summary: message
                   labels: ["triage"]
-                  description: (if desc != undefined then (desc + "\n") else "") +
+                  description: (if desc then desc + "\n\n" else "") +
                                """
                                Reported by #{msg.message.user.name} in ##{msg.message.room} on #{robot.adapterName}
                                https://#{robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}
