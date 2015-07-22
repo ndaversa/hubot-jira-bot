@@ -42,13 +42,14 @@ module.exports = (robot) ->
               user = JSON.parse body
               reporter = user[0] if user and user.length is 1
             finally
-              desc = msg.match(/"(.*?)"/)[1] if /"(.*?)"/.test(msg)
-              msg = msg.replace(/"(.*?)"/,"") if desc != undefined
+              message = msg.match[1]
+              desc = message.match(/"(.*?)"/)[1] if /"(.*?)"/.test(message)
+              message = message.replace(/"(.*?)"/,"") if desc != undefined
               issue =
                 fields:
                   project:
                     key: project
-                  summary: msg.match[1]
+                  summary: message
                   labels: ["triage"]
                   description: (if desc != undefined then (desc + "\n") else "") +
                                """
