@@ -9,7 +9,7 @@
 #   HUBOT_JIRA_URL (format: "https://jira-domain.com:9090")
 #   HUBOT_JIRA_USERNAME
 #   HUBOT_JIRA_PASSWORD
-#   HUBOT_JIRA_PROJECTS_MAP (format: {\"web\":\"WEB\",\"android\":\"AN\",\"ios\":\"IOS\",\"platform\":\"PLAT\"}
+#   HUBOT_JIRA_PROJECTS_MAP (format: "{\"web\":\"WEB\",\"android\":\"AN\",\"ios\":\"IOS\",\"platform\":\"PLAT\"}"
 #
 # Commands:
 #   hubot bug - File a bug in JIRA corresponding to the project of the channel
@@ -42,13 +42,16 @@ module.exports = (robot) ->
               user = JSON.parse body
               reporter = user[0] if user and user.length is 1
             finally
+              desc = msg.match(/"(.*?)"/)[1] if /"(.*?)"/.test(msg)
+              msg = msg.replace(/"(.*?)"/,"") if desc != undefined
               issue =
                 fields:
                   project:
                     key: project
                   summary: msg.match[1]
                   labels: ["triage"]
-                  description: """
+                  description: (if desc != undefined then (desc + "\n") else "") +
+                               """
                                Reported by #{msg.message.user.name} in ##{msg.message.room} on #{robot.adapterName}
                                https://#{robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}
                                """
