@@ -43,15 +43,24 @@ module.exports = (robot) ->
               reporter = user[0] if user and user.length is 1
             finally
               quoteRegex = /`(.*?)`/
+              labelsRegex = /#\w\w+\s?/g
+              labels = ["triage"]
               message = msg.match[1]
+
               desc = message.match(quoteRegex)[1] if quoteRegex.test(message)
               message = message.replace(quoteRegex, "") if desc
+
+              if labelsRegex.test(message)
+                labels = (message.match(labelsRegex).map((label) -> label.replace('#', '').trim())).concat(labels)
+                message = message.replace(labelsRegex, "")
+                console.log labels,message if debug
+
               issue =
                 fields:
                   project:
                     key: project
                   summary: message
-                  labels: ["triage"]
+                  labels: labels
                   description: (if desc then desc + "\n\n" else "") +
                                """
                                Reported by #{msg.message.user.name} in ##{msg.message.room} on #{robot.adapterName}
