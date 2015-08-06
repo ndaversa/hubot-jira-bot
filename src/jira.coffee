@@ -43,7 +43,7 @@ module.exports = (robot) ->
               reporter = user[0] if user and user.length is 1
             finally
               quoteRegex = /`(.*?)`/
-              labelsRegex = /#\w\w+\s?/g
+              labelsRegex = /#\S+\s?/g
               labels = ["triage"]
               message = msg.match[1]
 
