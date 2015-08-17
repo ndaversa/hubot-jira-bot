@@ -14,6 +14,7 @@
 # Commands:
 #   hubot bug - File a bug in JIRA corresponding to the project of the channel
 #   hubot task - File a task in JIRA corresponding to the project of the channel
+#   hubot story - File a story in JIRA corresponding to the project of the channel
 #
 # Author:
 #   ndaversa
@@ -87,6 +88,12 @@ module.exports = (robot) ->
                   catch error
                     msg.send "<@#{msg.message.user.id}> Unable to create ticket: #{error}"
                     console.log "statusCode:", res.statusCode, "error:", error, "err:", err, "body:", body
+
+    robot.respond /story (.+)/i, (msg) ->
+      room = msg.message.room
+      project = projects[room]
+      return msg.reply "Stories must be submitted in one of the following project channels:" + (" <\##{team}>" for team, key of projects) if not project
+      report project, "Story / Feature", msg
 
     robot.respond /bug (.+)/i, (msg) ->
       room = msg.message.room
