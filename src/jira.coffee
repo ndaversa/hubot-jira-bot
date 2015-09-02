@@ -27,7 +27,7 @@ module.exports = (robot) ->
   projects = JSON.parse process.env.HUBOT_JIRA_PROJECTS_MAP
 
   prefixes = (key for team, key of projects).reduce (x,y) -> x + "-|" + y
-  jiraPattern = eval "/\\b(" + prefixes + "-)(\\d+)\\b/gi"
+  jiraPattern = eval "/(^|\\s)(" + prefixes + "-)(\\d+)\\b/gi"
 
   if jiraUsername != undefined && jiraUsername.length > 0
     auth = "#{jiraUsername}:#{jiraPassword}"
@@ -109,7 +109,7 @@ module.exports = (robot) ->
 
     robot.hear jiraPattern, (msg) ->
       for issue in msg.match
-        robot.http("#{jiraUrl}/rest/api/2/issue/#{issue.toUpperCase()}")
+        robot.http("#{jiraUrl}/rest/api/2/issue/#{issue.trim().toUpperCase()}")
           .auth(auth)
           .get() (err, res, body) ->
             try
