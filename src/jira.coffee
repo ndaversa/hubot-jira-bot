@@ -43,7 +43,7 @@ module.exports = (robot) ->
               user = JSON.parse body
               reporter = user[0] if user and user.length is 1
             finally
-              quoteRegex = /`(.*?)`/
+              quoteRegex = /`{1,3}([^]*?)`{1,3}/
               labelsRegex = /#\S+\s?/g
               labels = ["triage"]
               message = msg.match[1]
@@ -89,19 +89,19 @@ module.exports = (robot) ->
                     msg.send "<@#{msg.message.user.id}> Unable to create ticket: #{error}"
                     console.log "statusCode:", res.statusCode, "error:", error, "err:", err, "body:", body
 
-    robot.respond /story (.+)/i, (msg) ->
+    robot.respond /story ([^]+)/i, (msg) ->
       room = msg.message.room
       project = projects[room]
       return msg.reply "Stories must be submitted in one of the following project channels:" + (" <\##{team}>" for team, key of projects) if not project
       report project, "Story / Feature", msg
 
-    robot.respond /bug (.+)/i, (msg) ->
+    robot.respond /bug ([^]+)/i, (msg) ->
       room = msg.message.room
       project = projects[room]
       return msg.reply "Bugs must be submitted in one of the following project channels:" + (" <\##{team}>" for team, key of projects) if not project
       report project, "Bug", msg
 
-    robot.respond /task (.+)/i, (msg) ->
+    robot.respond /task ([^]+)/i, (msg) ->
       room = msg.message.room
       project = projects[room]
       return msg.reply "Tasks must be submitted in one of the following project channels:" + (" <\##{team}>" for team, key of projects) if not project
