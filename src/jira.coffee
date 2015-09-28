@@ -136,7 +136,7 @@ module.exports = (robot) ->
                     json = JSON.parse body
                     if json.detail?[0]?.pullRequests
                       for pr in json.detail[0].pullRequests
-                        message += "PR: #{pr.url}\n"
+                        message += "PR: #{pr.url}\n" if pr.status is "OPEN"
                   finally
                     msg.send message
 
