@@ -3,13 +3,15 @@
 #  Also listens for mention of tickets and responds with information
 #
 # Dependencies:
-#   None
+# - moment
+# - octokat
 #
 # Configuration:
 #   HUBOT_JIRA_URL (format: "https://jira-domain.com:9090")
 #   HUBOT_JIRA_USERNAME
 #   HUBOT_JIRA_PASSWORD
 #   HUBOT_JIRA_PROJECTS_MAP (format: "{\"web\":\"WEB\",\"android\":\"AN\",\"ios\":\"IOS\",\"platform\":\"PLAT\"}"
+#   HUBOT_GITHUB_TOKEN - Github Application Token
 #
 # Commands:
 #   hubot bug - File a bug in JIRA corresponding to the project of the channel
@@ -25,6 +27,11 @@ module.exports = (robot) ->
   jiraUsername = process.env.HUBOT_JIRA_USERNAME
   jiraPassword = process.env.HUBOT_JIRA_PASSWORD
   projects = JSON.parse process.env.HUBOT_JIRA_PROJECTS_MAP
+  token = process.env.HUBOT_GITHUB_TOKEN
+
+  moment = require('moment')
+  Octokat = require('octokat')
+  octo = new Octokat token: token
 
   prefixes = (key for team, key of projects).reduce (x,y) -> x + "-|" + y
   jiraPattern = eval "/(^|\\s)(" + prefixes + "-)(\\d+)\\b/gi"
@@ -126,7 +133,7 @@ module.exports = (robot) ->
 
               message += """
                          Reporter: #{json.fields.reporter.displayName}
-                         JIRA: #{jiraUrl}/browse/#{json.key}\n
+                         JIRA: #{jiraUrl}/browse/#{json.key}
                          """
 
               robot.http("#{jiraUrl}/rest/dev-status/1.0/issue/detail?issueId=#{json.id}&applicationType=github&dataType=branch")
@@ -135,10 +142,27 @@ module.exports = (robot) ->
                   try
                     json = JSON.parse body
                     if json.detail?[0]?.pullRequests
-                      for pr in json.detail[0].pullRequests
-                        message += "PR: #{pr.url}\n" if pr.status is "OPEN"
-                  finally
-                    msg.send message
+                      Promise.all(json.detail[0].pullRequests.map (pr) ->
+                        if pr.status is "OPEN"
+                          orgAndRepo = pr.destination.url.split("github.com")[1].split('tree')[0].split('/')
+                          repo = octo.repos(orgAndRepo[1], orgAndRepo[2])
+                          return repo.pulls(pr.id.replace('#', '')).fetch()
+                        return
+                      ).then (prs)->
+                        for pr in prs when pr
+                          message += """
+                            \n\n*[#{pr.title}]* +#{pr.additions} -#{pr.deletions}
+                            #{pr.htmlUrl}
+                            Updated: *#{moment(pr.updatedAt).fromNow()}*
+                            Status: #{if pr.mergeable then "Ready for merge" else "Needs rebase"}
+                            Assignee: #{ if pr.assignee? then "<@#{pr.assignee.login}>" else "Unassigned" }
+                          """
+                        msg.send message
+                      .catch (err) ->
+                        msg.send "*[Error]* #{err}"
+
+                  catch fail
+                    msg.send "*[Error]* #{fail}"
 
             catch error
               try
