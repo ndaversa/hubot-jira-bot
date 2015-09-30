@@ -22,24 +22,24 @@
 # Author:
 #   ndaversa
 
+fetch = require 'node-fetch'
+moment = require 'moment'
+Octokat = require 'octokat'
 
 module.exports = (robot) ->
   jiraUrl = process.env.HUBOT_JIRA_URL
   jiraUsername = process.env.HUBOT_JIRA_USERNAME
   jiraPassword = process.env.HUBOT_JIRA_PASSWORD
-  projects = JSON.parse process.env.HUBOT_JIRA_PROJECTS_MAP
-  token = process.env.HUBOT_GITHUB_TOKEN
-
-  fetch = require 'node-fetch'
-  moment = require 'moment'
-  Octokat = require 'octokat'
-  octo = new Octokat token: token
-
-  prefixes = (key for team, key of projects).reduce (x,y) -> x + "-|" + y
-  jiraPattern = eval "/(^|\\s)(" + prefixes + "-)(\\d+)\\b/gi"
   headers =
       "Content-Type": "application/json"
       "Authorization": 'Basic ' + new Buffer("#{jiraUsername}:#{jiraPassword}").toString('base64')
+
+  token = process.env.HUBOT_GITHUB_TOKEN
+  octo = new Octokat token: token
+
+  projects = JSON.parse process.env.HUBOT_JIRA_PROJECTS_MAP
+  prefixes = (key for team, key of projects).reduce (x,y) -> x + "-|" + y
+  jiraPattern = eval "/(^|\\s)(" + prefixes + "-)(\\d+)\\b/gi"
 
   parseJSON = (response) ->
     return response.json()
@@ -104,24 +104,6 @@ module.exports = (robot) ->
     .catch (error) ->
       msg.send "<@#{msg.message.user.id}> Unable to create ticket #{error}"
 
-  robot.respond /story ([^]+)/i, (msg) ->
-    room = msg.message.room
-    project = projects[room]
-    return msg.reply "Stories must be submitted in one of the following project channels:" + (" <\##{team}>" for team, key of projects) if not project
-    report project, "Story / Feature", msg
-
-  robot.respond /bug ([^]+)/i, (msg) ->
-    room = msg.message.room
-    project = projects[room]
-    return msg.reply "Bugs must be submitted in one of the following project channels:" + (" <\##{team}>" for team, key of projects) if not project
-    report project, "Bug", msg
-
-  robot.respond /task ([^]+)/i, (msg) ->
-    room = msg.message.room
-    project = projects[room]
-    return msg.reply "Tasks must be submitted in one of the following project channels:" + (" <\##{team}>" for team, key of projects) if not project
-    report project, "Task", msg
-
   robot.hear jiraPattern, (msg) ->
     message = ""
     for issue in msg.match
@@ -165,3 +147,22 @@ module.exports = (robot) ->
         msg.send message
       .catch (error) ->
         msg.send "*[Error]* #{error}"
+
+  robot.respond /story ([^]+)/i, (msg) ->
+    room = msg.message.room
+    project = projects[room]
+    return msg.reply "Stories must be submitted in one of the following project channels:" + (" <\##{team}>" for team, key of projects) if not project
+    report project, "Story / Feature", msg
+
+  robot.respond /bug ([^]+)/i, (msg) ->
+    room = msg.message.room
+    project = projects[room]
+    return msg.reply "Bugs must be submitted in one of the following project channels:" + (" <\##{team}>" for team, key of projects) if not project
+    report project, "Bug", msg
+
+  robot.respond /task ([^]+)/i, (msg) ->
+    room = msg.message.room
+    project = projects[room]
+    return msg.reply "Tasks must be submitted in one of the following project channels:" + (" <\##{team}>" for team, key of projects) if not project
+    report project, "Task", msg
+
