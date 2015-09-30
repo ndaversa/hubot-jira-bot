@@ -57,10 +57,8 @@ module.exports = (robot) ->
 
     fetch("#{jiraUrl}/rest/api/2/user/search?username=#{msg.message.user.email_address}", headers: headers)
     .then (res) ->
-      console.log "checking"
       checkStatus res
     .then (res) ->
-      console.log "parsing"
       parseJSON res
     .then (user) ->
       reporter = user[0] if user and user.length is 1
@@ -93,16 +91,13 @@ module.exports = (robot) ->
       issue.fields.reporter = reporter if reporter
       issue
     .then (issue) ->
-      console.log "fetching issue", issue
       fetch "#{jiraUrl}/rest/api/2/issue",
         headers: headers
         method: "POST"
         body: JSON.stringify issue
     .then (res) ->
-      console.log "checking", res
       checkStatus res
     .then (res) ->
-      console.log "parsing"
       parseJSON res
     .then (json) ->
       msg.send "<@#{msg.message.user.id}> Ticket created: #{jiraUrl}/browse/#{json.key}"
