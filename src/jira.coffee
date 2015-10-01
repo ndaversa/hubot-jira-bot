@@ -52,6 +52,24 @@ module.exports = (robot) ->
       error.response = response
       throw error
 
+  lookupUserWithJira = (jira) ->
+    users = robot.brain.users()
+    result = (users[user] for user of users when users[user].email_address is jira.emailAddress) if jira
+    if result.length is 1
+      return "<@#{result[0].id}>"
+    else
+      return jira.displayName
+
+  lookupUserWithGithub = (github) ->
+    users = robot.brain.get('github-users') or []
+    result = (user for user in users when user.github is github.login) if github
+    if result?.length is 1
+      return "<@#{result[0].id}>"
+    else if github
+      return github.login
+    else
+      return "Unassigned"
+
   report = (project, type, msg) ->
     reporter = null
 
@@ -116,8 +134,8 @@ module.exports = (robot) ->
         message = """
           *[#{json.key}] - #{json.fields.summary}*
           Status: #{json.fields.status.name}
-          Assignee: #{if json.fields.assignee?.displayName then "<@#{json.fields.assignee.displayName}>" else "Unassigned"}
-          Reporter: #{json.fields.reporter.displayName}
+          Assignee: #{lookupUserWithJira json.fields.assignee}
+          Reporter: #{lookupUserWithJira json.fields.reporter}
           JIRA: #{jiraUrl}/browse/#{json.key}
         """
         json
@@ -141,7 +159,7 @@ module.exports = (robot) ->
             #{pr.htmlUrl}
             Updated: *#{moment(pr.updatedAt).fromNow()}*
             Status: #{if pr.mergeable then "Ready for merge" else "Needs rebase"}
-            Assignee: #{ if pr.assignee? then "<@#{pr.assignee.login}>" else "Unassigned" }
+            Assignee: #{lookupUserWithGithub pr.assignee}
           """
       .then () ->
         msg.send message
