@@ -85,7 +85,7 @@ module.exports = (robot) ->
       quoteRegex = /`{1,3}([^]*?)`{1,3}/
       labelsRegex = /#\S+\s?/g
       labels = ["triage"]
-      message = msg.match[1]
+      [__, command, message] = msg.match
 
       desc = message.match(quoteRegex)[1] if quoteRegex.test(message)
       message = message.replace(quoteRegex, "") if desc
