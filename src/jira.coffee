@@ -55,10 +55,12 @@ module.exports = (robot) ->
   lookupUserWithJira = (jira) ->
     users = robot.brain.users()
     result = (users[user] for user of users when users[user].email_address is jira.emailAddress) if jira
-    if result.length is 1
+    if result?.length is 1
       return "<@#{result[0].id}>"
-    else
+    else if jira
       return jira.displayName
+    else
+      return "Unassigned"
 
   lookupUserWithGithub = (github) ->
     users = robot.brain.get('github-users') or []
