@@ -11,13 +11,9 @@
 #   HUBOT_JIRA_URL (format: "https://jira-domain.com:9090")
 #   HUBOT_JIRA_USERNAME
 #   HUBOT_JIRA_PASSWORD
-#   HUBOT_JIRA_PROJECTS_MAP (format: "{\"web\":\"WEB\",\"android\":\"AN\",\"ios\":\"IOS\",\"platform\":\"PLAT\"}"
+#   HUBOT_JIRA_TYPES_MAP  \{\"story\":\"Story\ \/\ Feature\",\"bug\":\"Bug\",\"task\":\"Task\"\}
+#   HUBOT_JIRA_PROJECTS_MAP  \{\"web\":\"WEB\",\"android\":\"AN\",\"ios\":\"IOS\",\"platform\":\"PLAT\"\}
 #   HUBOT_GITHUB_TOKEN - Github Application Token
-#
-# Commands:
-#   hubot bug - File a bug in JIRA corresponding to the project of the channel
-#   hubot task - File a task in JIRA corresponding to the project of the channel
-#   hubot story - File a story in JIRA corresponding to the project of the channel
 #
 # Author:
 #   ndaversa
@@ -36,6 +32,10 @@ module.exports = (robot) ->
 
   token = process.env.HUBOT_GITHUB_TOKEN
   octo = new Octokat token: token
+
+  types = JSON.parse process.env.HUBOT_JIRA_TYPES_MAP
+  commands = (command for command, type of types).reduce (x,y) -> x + "|" + y
+  commandsPattern = eval "/(#{commands}) ([^]+)/i"
 
   projects = JSON.parse process.env.HUBOT_JIRA_PROJECTS_MAP
   prefixes = (key for team, key of projects).reduce (x,y) -> x + "-|" + y
@@ -168,21 +168,10 @@ module.exports = (robot) ->
       .catch (error) ->
         msg.send "*[Error]* #{error}"
 
-  robot.respond /story ([^]+)/i, (msg) ->
+  robot.respond commandsPattern, (msg) ->
+    [ __, command ] = msg.match
     room = msg.message.room
     project = projects[room]
-    return msg.reply "Stories must be submitted in one of the following project channels:" + (" <\##{team}>" for team, key of projects) if not project
-    report project, "Story / Feature", msg
-
-  robot.respond /bug ([^]+)/i, (msg) ->
-    room = msg.message.room
-    project = projects[room]
-    return msg.reply "Bugs must be submitted in one of the following project channels:" + (" <\##{team}>" for team, key of projects) if not project
-    report project, "Bug", msg
-
-  robot.respond /task ([^]+)/i, (msg) ->
-    room = msg.message.room
-    project = projects[room]
-    return msg.reply "Tasks must be submitted in one of the following project channels:" + (" <\##{team}>" for team, key of projects) if not project
-    report project, "Task", msg
-
+    type = types[command]
+    return msg.reply "#{type} must be submitted in one of the following project channels:" + (" <\##{team}>" for team, key of projects) if not project
+    report project, type, msg
