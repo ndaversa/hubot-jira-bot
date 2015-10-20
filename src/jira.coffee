@@ -173,5 +173,12 @@ module.exports = (robot) ->
     room = msg.message.room
     project = projects[room]
     type = types[command]
-    return msg.reply "#{type} must be submitted in one of the following project channels:" + (" <\##{team}>" for team, key of projects) if not project
+
+    if not project
+      channels = []
+      for team, key of projects
+        channel = robot.adapter.client.getChannelGroupOrDMByName team
+        channels.push " <\##{channel.id}|#{channel.name}>" if channel
+      return msg.reply "#{type} must be submitted in one of the following project channels:" + channels
+
     report project, type, msg
