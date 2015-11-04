@@ -125,8 +125,8 @@ module.exports = (robot) ->
       msg.send "<@#{msg.message.user.id}> Unable to create ticket #{error}"
 
   robot.hear jiraPattern, (msg) ->
-    message = ""
-    for issue in msg.match
+    Promise.all(msg.match.map (issue) ->
+      message = ""
       fetch("#{jiraUrl}/rest/api/2/issue/#{issue.trim().toUpperCase()}", headers: headers)
       .then (res) ->
         checkStatus res
@@ -154,7 +154,7 @@ module.exports = (robot) ->
               orgAndRepo = pr.destination.url.split("github.com")[1].split('tree')[0].split('/')
               repo = octo.repos(orgAndRepo[1], orgAndRepo[2])
               return repo.pulls(pr.id.replace('#', '')).fetch()
-      .then (prs)->
+      .then (prs) ->
         for pr in prs when pr
           message += """\n
             *[#{pr.title}]* +#{pr.additions} -#{pr.deletions}
@@ -163,10 +163,11 @@ module.exports = (robot) ->
             Status: #{if pr.mergeable then "Ready for merge" else "Needs rebase"}
             Assignee: #{lookupUserWithGithub pr.assignee}
           """
-      .then () ->
-        msg.send message
-      .catch (error) ->
-        msg.send "*[Error]* #{error}"
+        return message
+    ).then (messages) ->
+      msg.send message for message in messages
+    .catch (error) ->
+      msg.send "*[Error]* #{error}"
 
   robot.respond commandsPattern, (msg) ->
     [ __, command ] = msg.match
