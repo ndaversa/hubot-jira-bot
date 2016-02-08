@@ -87,7 +87,7 @@ module.exports = (robot) ->
     .then (user) ->
       reporter = user[0] if user and user.length is 1
       quoteRegex = /`{1,3}([^]*?)`{1,3}/
-      labelsRegex = /\s+#\S+\s?/g
+      labelsRegex = /\s+#\S+/g
       labels = []
       [__, command, message] = msg.match
 
