@@ -41,6 +41,10 @@ module.exports = (robot) ->
   prefixes = (key for team, key of projects).reduce (x,y) -> x + "-|" + y
   jiraPattern = eval "/(^|\\s)(" + prefixes + "-)(\\d+)\\b/gi"
 
+  jiraUrlRegexBase = "#{jiraUrl}/browse/".replace /[-\/\\^$*+?.()|[\]{}]/g, '\\$&'
+  jiraUrlRegex = eval "/(?:#{jiraUrlRegexBase})((?:#{prefixes}-)\\d+)\\s*/i"
+  jiraUrlRegexGlobal = eval "/(?:#{jiraUrlRegexBase})((?:#{prefixes}-)\\d+)\\s*/gi"
+
   parseJSON = (response) ->
     return response.json()
 
@@ -124,85 +128,81 @@ module.exports = (robot) ->
     .catch (error) ->
       msg.send "<@#{msg.message.user.id}> Unable to create ticket #{error}"
 
+  matchJiraTicket = (message) ->
+    if message.match?
+      matches = message.match(jiraPattern)
+    else if message.message?.rawText?.match?
+      matches = message.message.rawText.match(jiraPattern)
 
-  robot.listen(
-    # Match for JIRA tickets
-    (message) ->
-      if message.match?
-        matches = message.match(jiraPattern)
-      else if message.message?.rawText?.match?
-        matches = message.message.rawText.match(jiraPattern)
+    if matches and matches[0]
+      return matches
+    else
+      if message.message?.rawMessage?.attachments?
+        attachments = message.message.rawMessage.attachments
+        for attachment in attachments
+          if attachment.text?
+            matches = attachment.text.match(jiraPattern)
+            if matches and matches[0]
+              return matches
+    return false
 
-      if matches and matches[0]
-        return matches
-      else
-        if message.message?.rawMessage?.attachments?
-          attachments = message.message.rawMessage.attachments
-          for attachment in attachments
-            if attachment.text?
-              matches = attachment.text.match(jiraPattern)
-              if matches and matches[0]
-                return matches
-      return false
-    # Callback when matches
-    (msg) ->
-      Promise.all(msg.match.map (issue) ->
-        message = ""
-        id = ""
-        ticket = issue.trim().toUpperCase()
-        fetch("#{jiraUrl}/rest/api/2/issue/#{ticket}", headers: headers)
-        .then (res) ->
-          checkStatus res
-        .then (res) ->
-          parseJSON res
-        .then (json) ->
-          id = json.id
-          message = """
-            *[#{json.key}] - #{json.fields.summary}*
-            Status: #{json.fields.status.name}
-            Assignee: #{lookupUserWithJira json.fields.assignee}
-            Reporter: #{lookupUserWithJira json.fields.reporter}
-            JIRA: #{jiraUrl}/browse/#{json.key}
+  buildJiraTicketOutput = (msg) ->
+    Promise.all(msg.match.map (issue) ->
+      message = ""
+      id = ""
+      ticket = issue.trim().toUpperCase()
+      fetch("#{jiraUrl}/rest/api/2/issue/#{ticket}", headers: headers)
+      .then (res) ->
+        checkStatus res
+      .then (res) ->
+        parseJSON res
+      .then (json) ->
+        id = json.id
+        message = """
+          *[#{json.key}] - #{json.fields.summary}*
+          #{jiraUrl}/browse/#{ticket}
+          Status: #{json.fields.status.name}
+          Assignee: #{lookupUserWithJira json.fields.assignee}
+          Reporter: #{lookupUserWithJira json.fields.reporter}
+        """
+      .then (json) ->
+        fetch("#{jiraUrl}/rest/api/2/issue/#{ticket}/watchers", headers: headers)
+      .then (res) ->
+        checkStatus res
+      .then (res) ->
+        parseJSON res
+      .then (json) ->
+        if json.watchCount > 0
+          watchers = []
+          watchers.push lookupUserWithJira watcher for watcher in json.watchers
+          message += "\nWatchers: #{watchers.join ', '}"
+      .then (json) ->
+        fetch("#{jiraUrl}/rest/dev-status/1.0/issue/detail?issueId=#{id}&applicationType=github&dataType=branch", headers: headers)
+      .then (res) ->
+        checkStatus res
+      .then (res) ->
+        parseJSON res
+      .then (json) ->
+        if json.detail?[0]?.pullRequests
+          return Promise.all json.detail[0].pullRequests.map (pr) ->
+            if pr.status is "OPEN"
+              orgAndRepo = pr.destination.url.split("github.com")[1].split('tree')[0].split('/')
+              repo = octo.repos(orgAndRepo[1], orgAndRepo[2])
+              return repo.pulls(pr.id.replace('#', '')).fetch()
+      .then (prs) ->
+        for pr in prs when pr
+          message += """\n
+            *[#{pr.title}]* +#{pr.additions} -#{pr.deletions}
+            #{pr.htmlUrl}
+            Updated: *#{moment(pr.updatedAt).fromNow()}*
+            Status: #{if pr.mergeable then "Ready for merge" else "Needs rebase"}
+            Assignee: #{lookupUserWithGithub pr.assignee}
           """
-        .then (json) ->
-          fetch("#{jiraUrl}/rest/api/2/issue/#{ticket}/watchers", headers: headers)
-        .then (res) ->
-          checkStatus res
-        .then (res) ->
-          parseJSON res
-        .then (json) ->
-          if json.watchCount > 0
-            watchers = []
-            watchers.push lookupUserWithJira watcher for watcher in json.watchers
-            message += "\nWatchers: #{watchers.join ', '}"
-        .then (json) ->
-          fetch("#{jiraUrl}/rest/dev-status/1.0/issue/detail?issueId=#{id}&applicationType=github&dataType=branch", headers: headers)
-        .then (res) ->
-          checkStatus res
-        .then (res) ->
-          parseJSON res
-        .then (json) ->
-          if json.detail?[0]?.pullRequests
-            return Promise.all json.detail[0].pullRequests.map (pr) ->
-              if pr.status is "OPEN"
-                orgAndRepo = pr.destination.url.split("github.com")[1].split('tree')[0].split('/')
-                repo = octo.repos(orgAndRepo[1], orgAndRepo[2])
-                return repo.pulls(pr.id.replace('#', '')).fetch()
-        .then (prs) ->
-          for pr in prs when pr
-            message += """\n
-              *[#{pr.title}]* +#{pr.additions} -#{pr.deletions}
-              #{pr.htmlUrl}
-              Updated: *#{moment(pr.updatedAt).fromNow()}*
-              Status: #{if pr.mergeable then "Ready for merge" else "Needs rebase"}
-              Assignee: #{lookupUserWithGithub pr.assignee}
-            """
-          return message
-      ).then (messages) ->
-        msg.send message for message in messages
-      .catch (error) ->
-        msg.send "*[Error]* #{error}"
-  )
+        return message
+    ).then (messages) ->
+      msg.send message for message in messages
+    .catch (error) ->
+      msg.send "*[Error]* #{error}"
 
   robot.respond commandsPattern, (msg) ->
     [ __, command ] = msg.match
@@ -218,3 +218,12 @@ module.exports = (robot) ->
       return msg.reply "#{type} must be submitted in one of the following project channels:" + channels
 
     report project, type, msg
+
+  robot.hear jiraUrlRegexGlobal, (msg) ->
+    [ __, ticket ] = msg.match
+    matches = msg.match.map (match) ->
+      match.match(jiraUrlRegex)[1]
+    msg.match = matches
+    buildJiraTicketOutput msg
+
+  robot.listen matchJiraTicket, buildJiraTicketOutput
