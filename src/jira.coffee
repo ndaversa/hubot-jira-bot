@@ -159,7 +159,7 @@ module.exports = (robot) ->
       .then (json) ->
         id = json.id
         message = """
-          *[#{json.key}] - #{json.fields.summary}*
+          *[#{json.key}] - #{json.fields.summary.trim()}*
           #{jiraUrl}/browse/#{ticket}
           Status: #{json.fields.status.name}
           Assignee: #{lookupUserWithJira json.fields.assignee}
@@ -202,6 +202,7 @@ module.exports = (robot) ->
     ).then (messages) ->
       msg.send message for message in messages
     .catch (error) ->
+      msg.send message for message in messages
       msg.send "*[Error]* #{error}"
 
   robot.respond commandsPattern, (msg) ->
