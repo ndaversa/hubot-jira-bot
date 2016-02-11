@@ -1,11 +1,13 @@
 # Description:
 #  Quickly file JIRA tickets with hubot
 #  Also listens for mention of tickets and responds with information
+#  And transition tickets as well
 #
 # Dependencies:
 # - moment
 # - octokat
 # - node-fetch
+# - underscore
 #
 # Configuration:
 #   HUBOT_JIRA_URL (format: "https://jira-domain.com:9090")
@@ -13,11 +15,13 @@
 #   HUBOT_JIRA_PASSWORD
 #   HUBOT_JIRA_TYPES_MAP  \{\"story\":\"Story\ \/\ Feature\",\"bug\":\"Bug\",\"task\":\"Task\"\}
 #   HUBOT_JIRA_PROJECTS_MAP  \{\"web\":\"WEB\",\"android\":\"AN\",\"ios\":\"IOS\",\"platform\":\"PLAT\"\}
+#   HUBOT_JIRA_TRANSITIONS_MAP \[\{\"name\":\"triage\",\"jira\":\"Triage\"\},\{\"name\":\"icebox\",\"jira\":\"Icebox\"\},\{\"name\":\"backlog\",\"jira\":\"Backlog\"\},\{\"name\":\"devready\",\"jira\":\"Selected\ for\ Development\"\},\{\"name\":\"inprogress\",\"jira\":\"In\ Progress\"\},\{\"name\":\"design\",\"jira\":\"Design\ Triage\"\}\]
 #   HUBOT_GITHUB_TOKEN - Github Application Token
 #
 # Author:
 #   ndaversa
 
+_ = require 'underscore'
 fetch = require 'node-fetch'
 moment = require 'moment'
 Octokat = require 'octokat'
@@ -27,6 +31,7 @@ module.exports = (robot) ->
   jiraUsername = process.env.HUBOT_JIRA_USERNAME
   jiraPassword = process.env.HUBOT_JIRA_PASSWORD
   headers =
+      "X-Atlassian-Token": "no-check"
       "Content-Type": "application/json"
       "Authorization": 'Basic ' + new Buffer("#{jiraUsername}:#{jiraPassword}").toString('base64')
 
@@ -44,6 +49,11 @@ module.exports = (robot) ->
   jiraUrlRegexBase = "#{jiraUrl}/browse/".replace /[-\/\\^$*+?.()|[\]{}]/g, '\\$&'
   jiraUrlRegex = eval "/(?:#{jiraUrlRegexBase})((?:#{prefixes}-)\\d+)\\s*/i"
   jiraUrlRegexGlobal = eval "/(?:#{jiraUrlRegexBase})((?:#{prefixes}-)\\d+)\\s*/gi"
+
+  transitions = null
+  transitions = JSON.parse process.env.HUBOT_JIRA_TRANSITIONS_MAP if process.env.HUBOT_JIRA_TRANSITIONS_MAP
+  transitionRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+))\\s+(?\:to\\s+|>\\s?)(#{(transitions.map (t) -> t.name).join "|"})/i" if transitions
+  rankRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+)) rank (up|down|top|bottom)/i"
 
   parseJSON = (response) ->
     return response.json()
@@ -78,6 +88,12 @@ module.exports = (robot) ->
 
   report = (project, type, msg) ->
     reporter = null
+    [__, command, message] = msg.match
+
+    if transitions
+      shouldTransitionRegex = eval "/\\s+>\\s?(#{(transitions.map (t) -> t.name).join "|"})/i"
+      if shouldTransitionRegex.test(message)
+        [ __, toState] =  message.match shouldTransitionRegex
 
     fetch("#{jiraUrl}/rest/api/2/user/search?username=#{msg.message.user.email_address}", headers: headers)
     .then (res) ->
@@ -89,10 +105,10 @@ module.exports = (robot) ->
       quoteRegex = /`{1,3}([^]*?)`{1,3}/
       labelsRegex = /\s+#\S+/g
       labels = []
-      [__, command, message] = msg.match
 
       desc = message.match(quoteRegex)[1] if quoteRegex.test(message)
       message = message.replace(quoteRegex, "") if desc
+      message = message.replace(shouldTransitionRegex, "") if toState
 
       if labelsRegex.test(message)
         labels = (message.match(labelsRegex).map((label) -> label.replace('#', '').trim())).concat(labels)
@@ -124,7 +140,13 @@ module.exports = (robot) ->
     .then (res) ->
       parseJSON res
     .then (json) ->
-      msg.send "<@#{msg.message.user.id}> Ticket created: #{jiraUrl}/browse/#{json.key}"
+      issue = json.key
+      msg.send "<@#{msg.message.user.id}> Ticket created: #{jiraUrl}/browse/#{issue}"
+
+      if toState
+        msg.match = [ message, issue, toState ]
+        handleTransitionRequest msg
+
     .catch (error) ->
       msg.send "<@#{msg.message.user.id}> Unable to create ticket #{error}"
 
@@ -205,6 +227,61 @@ module.exports = (robot) ->
       msg.send message for message in messages
       msg.send "*[Error]* #{error}"
 
+  handleTransitionRequest = (msg) ->
+    msg.finish()
+    [ __, ticket, toState ] = msg.match
+    ticket = ticket.toUpperCase()
+
+    fetch("#{jiraUrl}/rest/api/2/issue/#{ticket}?expand=transitions.fields", headers: headers)
+    .then (res) ->
+      checkStatus res
+    .then (res) ->
+      parseJSON res
+    .then (json) ->
+      type = _(transitions).find (type) -> type.name is toState
+      transition = json.transitions.find (state) -> state.name.toLowerCase() is type.jira.toLowerCase()
+      if transition
+        msg.send "<@#{msg.message.user.id}> Transitioning `#{ticket}` to `#{transition.name}`"
+        fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}/transitions",
+          headers: headers
+          method: "POST"
+          body: JSON.stringify
+            transition:
+              id: transition.id
+      else
+        msg.send "#{ticket} is a `#{json.fields.issuetype.name}` ticket and transitioning to `#{toState}` is not supported :sadpanda:"
+    .catch (error) ->
+      msg.send "<@#{msg.message.user.id}> An error has occured: #{error}"
+
+  handleRankRequest = (msg) ->
+    msg.finish()
+    [ __, ticket, direction ] = msg.match
+    ticket = ticket.toUpperCase()
+    direction = direction.toLowerCase()
+
+    switch direction
+      when "up", "top" then direction = "Top"
+      when "down", "bottom" then direction = "Bottom"
+      else throw "invalid direction"
+
+    fetch("#{jiraUrl}/rest/api/2/issue/#{ticket}", headers: headers)
+    .then (res) ->
+      checkStatus res
+    .then (res) ->
+      parseJSON res
+    .then (json) ->
+      if json.id
+        fetch("#{jiraUrl}/secure/Rank#{direction}.jspa?issueId=#{json.id}", headers: headers)
+        #Note: this fetch returns HTML and cannot be validated/parsed for success
+      else
+        throw "Cannot find ticket `#{ticket}`"
+    .then (res) ->
+      checkStatus res
+    .then () ->
+      msg.send "<@#{msg.message.user.id}> Ranked `#{ticket}` to `#{direction}`"
+    .catch (error) ->
+      msg.send "<@#{msg.message.user.id}> An error has occured: #{error}"
+
   robot.respond commandsPattern, (msg) ->
     [ __, command ] = msg.match
     room = msg.message.room
@@ -219,6 +296,9 @@ module.exports = (robot) ->
       return msg.reply "#{type} must be submitted in one of the following project channels:" + channels
 
     report project, type, msg
+
+  robot.hear transitionRegex, handleTransitionRequest if transitions
+  robot.hear rankRegex, handleRankRequest
 
   robot.hear jiraUrlRegexGlobal, (msg) ->
     [ __, ticket ] = msg.match
