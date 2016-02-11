@@ -16,6 +16,7 @@
 #   HUBOT_JIRA_TYPES_MAP  \{\"story\":\"Story\ \/\ Feature\",\"bug\":\"Bug\",\"task\":\"Task\"\}
 #   HUBOT_JIRA_PROJECTS_MAP  \{\"web\":\"WEB\",\"android\":\"AN\",\"ios\":\"IOS\",\"platform\":\"PLAT\"\}
 #   HUBOT_JIRA_TRANSITIONS_MAP \[\{\"name\":\"triage\",\"jira\":\"Triage\"\},\{\"name\":\"icebox\",\"jira\":\"Icebox\"\},\{\"name\":\"backlog\",\"jira\":\"Backlog\"\},\{\"name\":\"devready\",\"jira\":\"Selected\ for\ Development\"\},\{\"name\":\"inprogress\",\"jira\":\"In\ Progress\"\},\{\"name\":\"design\",\"jira\":\"Design\ Triage\"\}\]
+#   HUBOT_JIRA_PRIORITIES_MAP \[\{\"name\":\"Blocker\",\"id\":\"1\"\},\{\"name\":\"Critical\",\"id\":\"2\"\},\{\"name\":\"Major\",\"id\":\"3\"\},\{\"name\":\"Minor\",\"id\":\"4\"\},\{\"name\":\"Trivial\",\"id\":\"5\"\}\]
 #   HUBOT_GITHUB_TOKEN - Github Application Token
 #
 # Author:
@@ -54,6 +55,8 @@ module.exports = (robot) ->
   transitions = JSON.parse process.env.HUBOT_JIRA_TRANSITIONS_MAP if process.env.HUBOT_JIRA_TRANSITIONS_MAP
   transitionRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+))\\s+(?\:to\\s+|>\\s?)(#{(transitions.map (t) -> t.name).join "|"})/i" if transitions
   rankRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+)) rank (up|down|top|bottom)/i"
+
+  priorities = JSON.parse process.env.HUBOT_JIRA_PRIORITIES_MAP if process.env.HUBOT_JIRA_PRIORITIES_MAP
 
   parseJSON = (response) ->
     return response.json()
@@ -104,6 +107,7 @@ module.exports = (robot) ->
       reporter = user[0] if user and user.length is 1
       quoteRegex = /`{1,3}([^]*?)`{1,3}/
       labelsRegex = /\s+#\S+/g
+      priorityRegex = eval "/\\s+!(#{(priorities.map (priority) -> priority.name).join '|'})\\b/i" if priorities
       labels = []
 
       desc = message.match(quoteRegex)[1] if quoteRegex.test(message)
@@ -113,6 +117,11 @@ module.exports = (robot) ->
       if labelsRegex.test(message)
         labels = (message.match(labelsRegex).map((label) -> label.replace('#', '').trim())).concat(labels)
         message = message.replace(labelsRegex, "")
+
+      if priorities and priorityRegex.test(message)
+        priority = message.match(priorityRegex)[1]
+        priority = priorities.find (p) -> p.name.toLowerCase() is priority.toLowerCase()
+        message = message.replace(priorityRegex, "")
 
       issue =
         fields:
@@ -129,6 +138,7 @@ module.exports = (robot) ->
             name: type
 
       issue.fields.reporter = reporter if reporter
+      issue.fields.priority = id: priority.id if priority
       issue
     .then (issue) ->
       fetch "#{jiraUrl}/rest/api/2/issue",
