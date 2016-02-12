@@ -267,7 +267,7 @@ module.exports = (robot) ->
             transition:
               id: transition.id
       else
-        msg.send "#{ticket} is a `#{json.fields.issuetype.name}` and does not support transitioning from `#{json.fields.status.name}` to `#{toStatus}` :middle_finger:"
+        msg.send "#{ticket} is a `#{json.fields.issuetype.name}` and does not support transitioning from `#{json.fields.status.name}` to `#{toState}` :middle_finger:"
     .catch (error) ->
       msg.send "<@#{msg.message.user.id}> An error has occured: #{error}"
 
