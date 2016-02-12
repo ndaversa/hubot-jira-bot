@@ -55,6 +55,7 @@ module.exports = (robot) ->
   transitions = JSON.parse process.env.HUBOT_JIRA_TRANSITIONS_MAP if process.env.HUBOT_JIRA_TRANSITIONS_MAP
   transitionRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+))\\s+(?\:to\\s+|>\\s?)(#{(transitions.map (t) -> t.name).join "|"})/i" if transitions
   rankRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+)) rank (up|down|top|bottom)/i"
+  assignRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+)) assign @?([\\w._]*)/i"
 
   priorities = JSON.parse process.env.HUBOT_JIRA_PRIORITIES_MAP if process.env.HUBOT_JIRA_PRIORITIES_MAP
 
@@ -68,6 +69,13 @@ module.exports = (robot) ->
       error = new Error(response.statusText)
       error.response = response
       throw error
+
+  lookupSlackUser = (username) ->
+    users = robot.brain.users()
+    result = (users[user] for user of users when users[user].name is username)
+    if result?.length is 1
+      return result[0]
+    return null
 
   lookupUserWithJira = (jira) ->
     users = robot.brain.users()
@@ -292,6 +300,38 @@ module.exports = (robot) ->
     .catch (error) ->
       msg.send "<@#{msg.message.user.id}> An error has occured: #{error}"
 
+  handleAssignRequest = (msg) ->
+    msg.finish()
+    [ __, ticket, person ] = msg.match
+    person = if person is "me" then msg.message.user.name else person
+    ticket = ticket.toUpperCase()
+    slackUser = lookupSlackUser person
+
+    if slackUser
+      fetch("#{jiraUrl}/rest/api/2/user/search?username=#{slackUser.email_address}", headers: headers)
+      .then (res) ->
+        checkStatus res
+      .then (res) ->
+        parseJSON res
+      .then (user) ->
+        jiraUser = user[0] if user and user.length is 1
+        if jiraUser
+          fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}",
+            headers: headers
+            method: "PUT"
+            body: JSON.stringify
+              fields:
+                assignee:
+                  name: jiraUser.name
+        else
+          msg.send "<@#{msg.message.user.id}> Cannot find jira user <@#{slackUser.id}>"
+      .then () ->
+        msg.send "<@#{msg.message.user.id}> Assigned <@#{slackUser.id}> to `#{ticket}`: #{jiraUrl}/browse/#{ticket}"
+      .catch (error) ->
+        msg.send "<@#{msg.message.user.id}> Error: `#{error}`"
+    else
+      msg.send "<@#{msg.message.user.id}> Cannot find slack user `#{person}`"
+
   robot.respond commandsPattern, (msg) ->
     [ __, command ] = msg.match
     room = msg.message.room
@@ -309,6 +349,7 @@ module.exports = (robot) ->
 
   robot.hear transitionRegex, handleTransitionRequest if transitions
   robot.hear rankRegex, handleRankRequest
+  robot.hear assignRegex, handleAssignRequest
 
   robot.hear jiraUrlRegexGlobal, (msg) ->
     [ __, ticket ] = msg.match
