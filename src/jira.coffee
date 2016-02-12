@@ -257,9 +257,9 @@ module.exports = (robot) ->
       parseJSON res
     .then (json) ->
       type = _(transitions).find (type) -> type.name is toState
-      transition = json.transitions.find (state) -> state.name.toLowerCase() is type.jira.toLowerCase()
+      transition = json.transitions.find (state) -> state.to.name.toLowerCase() is type.jira.toLowerCase()
       if transition
-        msg.send "<@#{msg.message.user.id}> Transitioning `#{ticket}` to `#{transition.name}`"
+        msg.send "<@#{msg.message.user.id}> Transitioning `#{ticket}` to `#{transition.to.name}`"
         fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}/transitions",
           headers: headers
           method: "POST"
