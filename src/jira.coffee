@@ -56,6 +56,7 @@ module.exports = (robot) ->
   transitionRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+))\\s+(?\:to\\s+|>\\s?)(#{(transitions.map (t) -> t.name).join "|"})/i" if transitions
   rankRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+)) rank (up|down|top|bottom)/i"
   assignRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+)) assign @?([\\w._]*)/i"
+  commentRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+))\\s?(?\:<\\s?)([^]+)/i"
 
   priorities = JSON.parse process.env.HUBOT_JIRA_PRIORITIES_MAP if process.env.HUBOT_JIRA_PRIORITIES_MAP
 
@@ -332,6 +333,25 @@ module.exports = (robot) ->
     else
       msg.send "<@#{msg.message.user.id}> Cannot find slack user `#{person}`"
 
+  addComment = (msg) ->
+    msg.finish()
+    [ __, ticket, comment ] = msg.match
+
+    fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}/comment",
+      headers: headers
+      method: "POST"
+      body: JSON.stringify
+        body:"""
+          #{comment}
+
+          Reported by #{msg.message.user.name} in ##{msg.message.room} on #{robot.adapterName}
+          https://#{robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}
+        """
+    .then () ->
+      msg.send "<@#{msg.message.user.id}> Added comment to `#{ticket}`: #{jiraUrl}/browse/#{ticket}"
+    .catch (error) ->
+      msg.send "<@#{msg.message.user.id}> Error: `#{error}`"
+
   robot.respond commandsPattern, (msg) ->
     [ __, command ] = msg.match
     room = msg.message.room
@@ -350,6 +370,7 @@ module.exports = (robot) ->
   robot.hear transitionRegex, handleTransitionRequest if transitions
   robot.hear rankRegex, handleRankRequest
   robot.hear assignRegex, handleAssignRequest
+  robot.hear commentRegex, addComment
 
   robot.hear jiraUrlRegexGlobal, (msg) ->
     [ __, ticket ] = msg.match
