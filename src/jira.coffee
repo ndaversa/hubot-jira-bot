@@ -24,19 +24,34 @@
 #   ndaversa
 
 _ = require 'underscore'
-fetch = require 'node-fetch'
+nodeFetch = require 'node-fetch'
 moment = require 'moment'
 Octokat = require 'octokat'
 Fuse = require 'fuse.js'
 
 module.exports = (robot) ->
   jiraUrl = process.env.HUBOT_JIRA_URL
-  jiraUsername = process.env.HUBOT_JIRA_USERNAME
-  jiraPassword = process.env.HUBOT_JIRA_PASSWORD
-  headers =
-      "X-Atlassian-Token": "no-check"
-      "Content-Type": "application/json"
-      "Authorization": 'Basic ' + new Buffer("#{jiraUsername}:#{jiraPassword}").toString('base64')
+
+  fetch = (url, opts) ->
+    robot.logger.info "Fetching: #{url}"
+    options =
+      headers:
+        "X-Atlassian-Token": "no-check"
+        "Content-Type": "application/json"
+        "Authorization": 'Basic ' + new Buffer("#{process.env.HUBOT_JIRA_USERNAME}:#{process.env.HUBOT_JIRA_PASSWORD}").toString('base64')
+    options = _(options).extend opts
+
+    nodeFetch(url,options).then (response) ->
+      if response.status >= 200 and response.status < 300
+        return response
+      else
+        error = new Error(response.statusText)
+        error.response = response
+        throw error
+    .then (response) ->
+      response.json()
+    .catch (error) ->
+      robot.logger.error error.stack
 
   token = process.env.HUBOT_GITHUB_TOKEN
   octo = new Octokat token: token
@@ -62,16 +77,6 @@ module.exports = (robot) ->
 
   priorities = JSON.parse process.env.HUBOT_JIRA_PRIORITIES_MAP if process.env.HUBOT_JIRA_PRIORITIES_MAP
 
-  parseJSON = (response) ->
-    return response.json()
-
-  checkStatus = (response) ->
-    if response.status >= 200 and response.status < 300
-      return response
-    else
-      error = new Error(response.statusText)
-      error.response = response
-      throw error
 
   lookupSlackUser = (username) ->
     users = robot.brain.users()
@@ -121,11 +126,7 @@ module.exports = (robot) ->
       if shouldTransitionRegex.test(message)
         [ __, toState] =  message.match shouldTransitionRegex
 
-    fetch("#{jiraUrl}/rest/api/2/user/search?username=#{msg.message.user.email_address}", headers: headers)
-    .then (res) ->
-      checkStatus res
-    .then (res) ->
-      parseJSON res
+    fetch "#{jiraUrl}/rest/api/2/user/search?username=#{msg.message.user.email_address}"
     .then (user) ->
       reporter = user[0] if user and user.length is 1
       quoteRegex = /`{1,3}([^]*?)`{1,3}/
@@ -171,13 +172,8 @@ module.exports = (robot) ->
       issue
     .then (issue) ->
       fetch "#{jiraUrl}/rest/api/2/issue",
-        headers: headers
         method: "POST"
         body: JSON.stringify issue
-    .then (res) ->
-      checkStatus res
-    .then (res) ->
-      parseJSON res
     .then (json) ->
       issue = json.key
       msg.send "<@#{msg.message.user.id}> Ticket created: #{jiraUrl}/browse/#{issue}"
@@ -215,11 +211,7 @@ module.exports = (robot) ->
       message = ""
       id = ""
       ticket = issue.trim().toUpperCase()
-      fetch("#{jiraUrl}/rest/api/2/issue/#{ticket}", headers: headers)
-      .then (res) ->
-        checkStatus res
-      .then (res) ->
-        parseJSON res
+      fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}"
       .then (json) ->
         id = json.id
         message = """
@@ -230,22 +222,14 @@ module.exports = (robot) ->
           Reporter: #{lookupUserWithJira json.fields.reporter}
         """
       .then (json) ->
-        fetch("#{jiraUrl}/rest/api/2/issue/#{ticket}/watchers", headers: headers)
-      .then (res) ->
-        checkStatus res
-      .then (res) ->
-        parseJSON res
+        fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}/watchers"
       .then (json) ->
         if json.watchCount > 0
           watchers = []
           watchers.push lookupUserWithJira watcher for watcher in json.watchers
           message += "\nWatchers: #{watchers.join ', '}"
       .then (json) ->
-        fetch("#{jiraUrl}/rest/dev-status/1.0/issue/detail?issueId=#{id}&applicationType=github&dataType=branch", headers: headers)
-      .then (res) ->
-        checkStatus res
-      .then (res) ->
-        parseJSON res
+        fetch "#{jiraUrl}/rest/dev-status/1.0/issue/detail?issueId=#{id}&applicationType=github&dataType=branch"
       .then (json) ->
         if json.detail?[0]?.pullRequests
           return Promise.all json.detail[0].pullRequests.map (pr) ->
@@ -283,18 +267,13 @@ module.exports = (robot) ->
     [ __, ticket, toState ] = msg.match
     ticket = ticket.toUpperCase()
 
-    fetch("#{jiraUrl}/rest/api/2/issue/#{ticket}?expand=transitions.fields", headers: headers)
-    .then (res) ->
-      checkStatus res
-    .then (res) ->
-      parseJSON res
+    fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}?expand=transitions.fields"
     .then (json) ->
       type = _(transitions).find (type) -> type.name is toState
       transition = json.transitions.find (state) -> state.to.name.toLowerCase() is type.jira.toLowerCase()
       if transition
         msg.send "<@#{msg.message.user.id}> Transitioning `#{ticket}` to `#{transition.to.name}`"
         fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}/transitions",
-          headers: headers
           method: "POST"
           body: JSON.stringify
             transition:
@@ -315,11 +294,7 @@ module.exports = (robot) ->
       when "down", "bottom" then direction = "Bottom"
       else throw "invalid direction"
 
-    fetch("#{jiraUrl}/rest/api/2/issue/#{ticket}", headers: headers)
-    .then (res) ->
-      checkStatus res
-    .then (res) ->
-      parseJSON res
+    fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}"
     .then (json) ->
       if json.id
         fetch("#{jiraUrl}/secure/Rank#{direction}.jspa?issueId=#{json.id}", headers: headers)
@@ -341,16 +316,11 @@ module.exports = (robot) ->
     slackUser = lookupSlackUser person
 
     if slackUser
-      fetch("#{jiraUrl}/rest/api/2/user/search?username=#{slackUser.email_address}", headers: headers)
-      .then (res) ->
-        checkStatus res
-      .then (res) ->
-        parseJSON res
+      fetch "#{jiraUrl}/rest/api/2/user/search?username=#{slackUser.email_address}"
       .then (user) ->
         jiraUser = user[0] if user and user.length is 1
         if jiraUser
           fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}",
-            headers: headers
             method: "PUT"
             body: JSON.stringify
               fields:
@@ -370,7 +340,6 @@ module.exports = (robot) ->
     [ __, ticket, comment ] = msg.match
 
     fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}/comment",
-      headers: headers
       method: "POST"
       body: JSON.stringify
         body:"""
