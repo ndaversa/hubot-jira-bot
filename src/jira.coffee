@@ -94,6 +94,7 @@ module.exports = (robot) ->
     return if not github
 
     github.fetch().then (user) ->
+      name = user.name or github.login
       users = robot.brain.users()
       users = _(users).keys().map (id) ->
         u = users[id]
@@ -106,10 +107,9 @@ module.exports = (robot) ->
         shouldSort: yes
         verbose: no
 
-      results = f.search user.name
-      result = if results? and results.length >=1 then results[0] else null
-      return result if result
-      return null
+      results = f.search name
+      result = if results? and results.length >=1 then results[0] else undefined
+      return result
 
   report = (project, type, msg) ->
     reporter = null
@@ -267,7 +267,7 @@ module.exports = (robot) ->
             *[#{pr.title}]* +#{pr.additions} -#{pr.deletions}
             #{pr.htmlUrl}
             Updated: *#{moment(pr.updatedAt).fromNow()}*
-            Status: #{if pr.mergeable then "Ready for merge" else "Needs rebase"}
+            Status: #{if pr.mergeable then "Mergeable" else "Unresolved Conflicts"}
             Author: #{if author then "<@#{author.id}>" else "Unknown"}
             Assignee: #{if assignee then "<@#{assignee.id}>" else "Unassigned"}
           """
