@@ -100,6 +100,7 @@ module.exports = (robot) ->
 
   report = (project, type, msg) ->
     reporter = null
+    assignee = null
     [__, command, message] = msg.match
 
     if transitions
@@ -117,20 +118,26 @@ module.exports = (robot) ->
       quoteRegex = /`{1,3}([^]*?)`{1,3}/
       labelsRegex = /\s+#\S+/g
       priorityRegex = eval "/\\s+!(#{(priorities.map (priority) -> priority.name).join '|'})\\b/i" if priorities
+      mentionRegex = eval "/(?:@([\\w._]*))/i"
+
       labels = []
 
       desc = message.match(quoteRegex)[1] if quoteRegex.test(message)
       message = message.replace(quoteRegex, "") if desc
       message = message.replace(shouldTransitionRegex, "") if toState
 
-      if labelsRegex.test(message)
+      if labelsRegex.test message
         labels = (message.match(labelsRegex).map((label) -> label.replace('#', '').trim())).concat(labels)
-        message = message.replace(labelsRegex, "")
+        message = message.replace labelsRegex, ""
 
-      if priorities and priorityRegex.test(message)
+      if priorities and priorityRegex.test message
         priority = message.match(priorityRegex)[1]
         priority = priorities.find (p) -> p.name.toLowerCase() is priority.toLowerCase()
-        message = message.replace(priorityRegex, "")
+        message = message.replace priorityRegex, ""
+
+      if mentionRegex.test message
+        assignee = message.match(mentionRegex)[1]
+        message = message.replace mentionRegex, ""
 
       issue =
         fields:
@@ -166,6 +173,9 @@ module.exports = (robot) ->
         msg.match = [ message, issue, toState ]
         handleTransitionRequest msg
 
+      if assignee
+        msg.match = [ message, issue, assignee ]
+        handleAssignRequest msg
     .catch (error) ->
       msg.send "<@#{msg.message.user.id}> Unable to create ticket #{error}"
 
