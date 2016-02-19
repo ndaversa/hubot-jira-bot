@@ -91,7 +91,9 @@ module.exports = (robot) ->
       return "Unassigned"
 
   lookupUserWithGithub = (github) ->
-    if github
+    return if not github
+
+    github.fetch().then (user) ->
       users = robot.brain.users()
       users = _(users).keys().map (id) ->
         u = users[id]
@@ -103,10 +105,11 @@ module.exports = (robot) ->
         keys: ['real_name']
         shouldSort: yes
         verbose: no
-      results = f.search github.login
+
+      results = f.search user.name
       result = if results? and results.length >=1 then results[0] else null
       return result if result
-    return null
+      return null
 
   report = (project, type, msg) ->
     reporter = null
@@ -251,9 +254,15 @@ module.exports = (robot) ->
               repo = octo.repos(orgAndRepo[1], orgAndRepo[2])
               return repo.pulls(pr.id.replace('#', '')).fetch()
       .then (prs) ->
-        for pr in prs when pr
+        return Promise.all prs.map (pr) ->
           author = lookupUserWithGithub pr.user
           assignee = lookupUserWithGithub pr.assignee
+          return Promise.all [ pr, author, assignee ]
+      .then (prs) ->
+        for p in prs when p
+          pr = p[0]
+          author = p[1]
+          assignee = p[2]
           message += """\n
             *[#{pr.title}]* +#{pr.additions} -#{pr.deletions}
             #{pr.htmlUrl}
