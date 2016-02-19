@@ -126,7 +126,7 @@ module.exports = (robot) ->
       if shouldTransitionRegex.test(message)
         [ __, toState] =  message.match shouldTransitionRegex
 
-    fetch "#{jiraUrl}/rest/api/2/user/search?username=#{msg.message.user.email_address}"
+    fetch("#{jiraUrl}/rest/api/2/user/search?username=#{msg.message.user.email_address}")
     .then (user) ->
       reporter = user[0] if user and user.length is 1
       quoteRegex = /`{1,3}([^]*?)`{1,3}/
@@ -211,7 +211,7 @@ module.exports = (robot) ->
       message = ""
       id = ""
       ticket = issue.trim().toUpperCase()
-      fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}"
+      fetch("#{jiraUrl}/rest/api/2/issue/#{ticket}")
       .then (json) ->
         id = json.id
         message = """
@@ -267,7 +267,7 @@ module.exports = (robot) ->
     [ __, ticket, toState ] = msg.match
     ticket = ticket.toUpperCase()
 
-    fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}?expand=transitions.fields"
+    fetch("#{jiraUrl}/rest/api/2/issue/#{ticket}?expand=transitions.fields")
     .then (json) ->
       type = _(transitions).find (type) -> type.name is toState
       transition = json.transitions.find (state) -> state.to.name.toLowerCase() is type.jira.toLowerCase()
@@ -294,15 +294,13 @@ module.exports = (robot) ->
       when "down", "bottom" then direction = "Bottom"
       else throw "invalid direction"
 
-    fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}"
+    fetch("#{jiraUrl}/rest/api/2/issue/#{ticket}")
     .then (json) ->
       if json.id
-        fetch("#{jiraUrl}/secure/Rank#{direction}.jspa?issueId=#{json.id}", headers: headers)
+        fetch "#{jiraUrl}/secure/Rank#{direction}.jspa?issueId=#{json.id}"
         #Note: this fetch returns HTML and cannot be validated/parsed for success
       else
         throw "Cannot find ticket `#{ticket}`"
-    .then (res) ->
-      checkStatus res
     .then () ->
       msg.send "<@#{msg.message.user.id}> Ranked `#{ticket}` to `#{direction}`"
     .catch (error) ->
@@ -316,7 +314,7 @@ module.exports = (robot) ->
     slackUser = lookupSlackUser person
 
     if slackUser
-      fetch "#{jiraUrl}/rest/api/2/user/search?username=#{slackUser.email_address}"
+      fetch("#{jiraUrl}/rest/api/2/user/search?username=#{slackUser.email_address}")
       .then (user) ->
         jiraUser = user[0] if user and user.length is 1
         if jiraUser
