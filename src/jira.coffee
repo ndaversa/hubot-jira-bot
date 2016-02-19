@@ -8,6 +8,7 @@
 # - octokat
 # - node-fetch
 # - underscore
+# - fuse.js
 #
 # Configuration:
 #   HUBOT_JIRA_URL (format: "https://jira-domain.com:9090")
@@ -26,6 +27,7 @@ _ = require 'underscore'
 fetch = require 'node-fetch'
 moment = require 'moment'
 Octokat = require 'octokat'
+Fuse = require 'fuse.js'
 
 module.exports = (robot) ->
   jiraUrl = process.env.HUBOT_JIRA_URL
@@ -89,14 +91,22 @@ module.exports = (robot) ->
       return "Unassigned"
 
   lookupUserWithGithub = (github) ->
-    users = robot.brain.get('github-users') or []
-    result = (user for user in users when user.github is github.login) if github
-    if result?.length is 1
-      return "<@#{result[0].id}>"
-    else if github
-      return github.login
-    else
-      return "Unassigned"
+    if github
+      users = robot.brain.users()
+      users = _(users).keys().map (id) ->
+        u = users[id]
+        id: u.id
+        name: u.name
+        real_name: u.real_name
+
+      f = new Fuse users,
+        keys: ['real_name']
+        shouldSort: yes
+        verbose: no
+      results = f.search github.login
+      result = if results? and results.length >=1 then results[0] else null
+      return result if result
+    return null
 
   report = (project, type, msg) ->
     reporter = null
@@ -242,12 +252,15 @@ module.exports = (robot) ->
               return repo.pulls(pr.id.replace('#', '')).fetch()
       .then (prs) ->
         for pr in prs when pr
+          author = lookupUserWithGithub pr.user
+          assignee = lookupUserWithGithub pr.assignee
           message += """\n
             *[#{pr.title}]* +#{pr.additions} -#{pr.deletions}
             #{pr.htmlUrl}
             Updated: *#{moment(pr.updatedAt).fromNow()}*
             Status: #{if pr.mergeable then "Ready for merge" else "Needs rebase"}
-            Assignee: #{lookupUserWithGithub pr.assignee}
+            Author: #{if author then "<@#{author.id}>" else "Unknown"}
+            Assignee: #{if assignee then "<@#{assignee.id}>" else "Unassigned"}
           """
         return message
     ).then (messages) ->

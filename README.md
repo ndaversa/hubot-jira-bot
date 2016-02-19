@@ -8,6 +8,7 @@ And transition tickets as well
 - octokat
 - node-fetch
 - underscore
+- fuse.js
 
 ###Configuration:
 -`HUBOT_JIRA_URL` `https://jira-domain.com:9090`
