@@ -239,6 +239,7 @@ module.exports = (robot) ->
               return repo.pulls(pr.id.replace('#', '')).fetch()
       .then (prs) ->
         return Promise.all prs.map (pr) ->
+          return if not pr
           author = lookupUserWithGithub pr.user
           assignee = lookupUserWithGithub pr.assignee
           return Promise.all [ pr, author, assignee ]
