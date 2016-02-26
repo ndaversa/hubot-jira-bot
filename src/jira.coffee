@@ -399,15 +399,18 @@ module.exports = (robot) ->
     `<description>` is optional and is surrounded with single or triple backticks
     and can be used to provide a more detailed description for the ticket.
     `<title>` is a short summary of the ticket
-          The `<title>` can optionally include one or many hashtags that will
-          become labels on the jira ticket
-                 eg. `#quick #techdebt`
-          The `<title>` can optionally include a handle that will be used to
-          assign the ticket after creation
-                 eg. `@username`
-          The `<title>` can optionally include the ticket priority to be
-          assigned, the supported priorities are:
-                 #{(_(priorities).map (p) -> "`!#{p.name.toLowerCase()}`").join ',  '}
+        *Optional `<title>` Attributes*
+            _Labels_: include one or many hashtags that will become labels on the jira ticket
+                 `#quick #techdebt`
+
+            _Assignment_: include a handle that will be used to assign the ticket after creation
+                 `@username`
+
+            _Transitions_: include a transition to make after the ticket is created
+                #{(transitions.map (t) -> "`>#{t.name}`").join ',  '}
+
+            _Priority_: include the ticket priority to be assigned upon ticket creation
+                #{(_(priorities).map (p) -> "`!#{p.name.toLowerCase()}`").join ',  '}
     """
 
     rank = """
@@ -429,7 +432,7 @@ module.exports = (robot) ->
 
     assignment = """
     *Assigning Tickets*
-    > `<ticket>` assign @username
+    > `<ticket>` assign `@username`
 
     Where `<ticket>` is the JIRA ticket number
     and `@username` is a user handle
@@ -438,7 +441,7 @@ module.exports = (robot) ->
     transition = """
     *Transitioning Tickets*
     > `<ticket>` to `<state>`
-    > `<ticket>` > `<state>`
+    > `<ticket>` >`<state>`
 
     Where `<ticket>` is the JIRA ticket number
     and `<state>` is one of the following: #{(transitions.map (t) -> "`#{t.name}`").join ',  '}
