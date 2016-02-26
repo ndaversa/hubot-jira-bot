@@ -344,7 +344,7 @@ module.exports = (robot) ->
         body:"""
           #{comment}
 
-          Reported by #{msg.message.user.name} in ##{msg.message.room} on #{robot.adapterName}
+          Comment left by #{msg.message.user.name} in ##{msg.message.room} on #{robot.adapterName}
           https://#{robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}
         """
     .then () ->
@@ -380,3 +380,81 @@ module.exports = (robot) ->
     buildJiraTicketOutput msg
 
   robot.listen matchJiraTicket, buildJiraTicketOutput
+
+  robot.respond /(?:help jira|jira help)(?: (.*))?/, (msg) ->
+    [ __, topic] = msg.match
+
+    overview = """
+    *The Definitive #{robot.name.toUpperCase()} JIRA Manual*
+    <@#{robot.adapter.self.id}> can help you *open* JIRA tickets, *transition* them thru
+    different states, *comment* on them, *rank* them _up_ or _down_ or change
+    who is *assigned* to a ticket
+    """
+
+    opening = """
+    *Opening Tickets*
+    > #{robot.name} `<type>` `<title>` [`<description>`]
+
+    Where `<type>` is one of the following: #{(_(types).keys().map (t) -> "`#{t}`").join ',  '}
+    `<description>` is optional and is surrounded with single or triple backticks
+    and can be used to provide a more detailed description for the ticket.
+    `<title>` is a short summary of the ticket
+          The `<title>` can optionally include one or many hashtags that will
+          become labels on the jira ticket
+                 eg. `#quick #techdebt`
+          The `<title>` can optionally include a handle that will be used to
+          assign the ticket after creation
+                 eg. `@username`
+          The `<title>` can optionally include the ticket priority to be
+          assigned, the supported priorities are:
+                 #{(_(priorities).map (p) -> "`!#{p.name.toLowerCase()}`").join ',  '}
+    """
+
+    rank = """
+    *Ranking Tickets*
+    > `<ticket>` rank top
+    > `<ticket>` rank bottom
+
+    Where `<ticket>` is the JIRA ticket number. Note this will rank it the top
+    of column for the current state
+    """
+
+    comment = """
+    *Commenting on a Ticket*
+    > `<ticket>` < `<comment>`
+
+    Where `<ticket>` is the JIRA ticket number
+    and `<comment>` is the comment you wish to leave on the ticket
+    """
+
+    assignment = """
+    *Assigning Tickets*
+    > `<ticket>` assign @username
+
+    Where `<ticket>` is the JIRA ticket number
+    and `@username` is a user handle
+    """
+
+    transition = """
+    *Transitioning Tickets*
+    > `<ticket>` to `<state>`
+    > `<ticket>` > `<state>`
+
+    Where `<ticket>` is the JIRA ticket number
+    and `<state>` is one of the following: #{(transitions.map (t) -> "`#{t.name}`").join ',  '}
+    """
+
+    if _(["report", "open", "file", commands.split '|']).chain().flatten().contains(topic).value()
+      responses = [ opening ]
+    else if _(["rank", "ranking"]).contains topic
+      responses = [ rank ]
+    else if _(["comment", "comments"]).contains topic
+      responses = [ comment ]
+    else if _(["assign", "assignment"]).contains topic
+      responses = [ assignment ]
+    else if _(["transition", "transitions", "state", "move"]).contains topic
+      responses = [ transition ]
+    else
+      responses = [ overview, opening, rank, comment, assignment, transition ]
+
+    msg.send "<@#{msg.message.user.id}>\n#{responses.join '\n\n\n'}"
