@@ -32,6 +32,11 @@ Fuse = require 'fuse.js'
 module.exports = (robot) ->
   jiraUrl = process.env.HUBOT_JIRA_URL
 
+  send = (context, message, prependUsername=yes) ->
+    robot.adapter.customMessage
+      channel: context.message.room
+      text: "#{if prependUsername then "<@#{context.message.user.id}> " else ""}#{message}"
+
   fetch = (url, opts) ->
     robot.logger.info "Fetching: #{url}"
     options =
@@ -176,7 +181,7 @@ module.exports = (robot) ->
         body: JSON.stringify issue
     .then (json) ->
       issue = json.key
-      msg.send "<@#{msg.message.user.id}> Ticket created: #{jiraUrl}/browse/#{issue}"
+      send msg, "Ticket created: #{jiraUrl}/browse/#{issue}"
 
       if toState
         msg.match = [ message, issue, toState ]
@@ -186,7 +191,7 @@ module.exports = (robot) ->
         msg.match = [ message, issue, assignee ]
         handleAssignRequest msg
     .catch (error) ->
-      msg.send "<@#{msg.message.user.id}> Unable to create ticket #{error}"
+      send msg, "Unable to create ticket #{error}"
 
   matchJiraTicket = (message) ->
     if message.match?
@@ -215,8 +220,7 @@ module.exports = (robot) ->
       .then (json) ->
         id = json.id
         message = """
-          *[#{json.key}] - #{json.fields.summary.trim()}*
-          #{jiraUrl}/browse/#{ticket}
+          *<#{jiraUrl}/browse/#{ticket}|#{json.key}> - #{json.fields.summary.trim()}*
           Status: #{json.fields.status.name}
           Assignee: #{lookupUserWithJira json.fields.assignee}
           Reporter: #{lookupUserWithJira json.fields.reporter}
@@ -249,8 +253,7 @@ module.exports = (robot) ->
           author = p[1]
           assignee = p[2]
           message += """\n
-            *[#{pr.title}]* +#{pr.additions} -#{pr.deletions}
-            #{pr.htmlUrl}
+            *<#{pr.htmlUrl}|#{pr.title}>* +#{pr.additions} -#{pr.deletions}
             Updated: *#{moment(pr.updatedAt).fromNow()}*
             Status: #{if pr.mergeable then "Mergeable" else "Unresolved Conflicts"}
             Author: #{if author then "<@#{author.id}>" else "Unknown"}
@@ -258,10 +261,10 @@ module.exports = (robot) ->
           """
         return message
     ).then (messages) ->
-      msg.send message for message in messages
+      send msg, message, no for message in messages
     .catch (error) ->
-      msg.send message for message in messages
-      msg.send "*[Error]* #{error}"
+      send msg, message, no for message in messages
+      send msg, "*Error:* #{error}"
 
   handleTransitionRequest = (msg) ->
     msg.finish()
@@ -273,16 +276,16 @@ module.exports = (robot) ->
       type = _(transitions).find (type) -> type.name is toState
       transition = json.transitions.find (state) -> state.to.name.toLowerCase() is type.jira.toLowerCase()
       if transition
-        msg.send "<@#{msg.message.user.id}> Transitioning `#{ticket}` to `#{transition.to.name}`"
+        send msg, "Transitioning `#{ticket}` to `#{transition.to.name}`"
         fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}/transitions",
           method: "POST"
           body: JSON.stringify
             transition:
               id: transition.id
       else
-        msg.send "#{ticket} is a `#{json.fields.issuetype.name}` and does not support transitioning from `#{json.fields.status.name}` to `#{type.jira}` :middle_finger:"
+        send msg, "#{ticket} is a `#{json.fields.issuetype.name}` and does not support transitioning from `#{json.fields.status.name}` to `#{type.jira}` :middle_finger:"
     .catch (error) ->
-      msg.send "<@#{msg.message.user.id}> An error has occured: #{error}"
+      send msg, "An error has occured: #{error}"
 
   handleRankRequest = (msg) ->
     msg.finish()
@@ -303,9 +306,9 @@ module.exports = (robot) ->
       else
         throw "Cannot find ticket `#{ticket}`"
     .then () ->
-      msg.send "<@#{msg.message.user.id}> Ranked `#{ticket}` to `#{direction}`"
+      send msg, "Ranked `#{ticket}` to `#{direction}`"
     .catch (error) ->
-      msg.send "<@#{msg.message.user.id}> An error has occured: #{error}"
+      send msg, "An error has occured: #{error}"
 
   handleAssignRequest = (msg) ->
     msg.finish()
@@ -326,13 +329,13 @@ module.exports = (robot) ->
                 assignee:
                   name: jiraUser.name
         else
-          msg.send "<@#{msg.message.user.id}> Cannot find jira user <@#{slackUser.id}>"
+          send msg, "Cannot find jira user <@#{slackUser.id}>"
       .then () ->
-        msg.send "<@#{msg.message.user.id}> Assigned <@#{slackUser.id}> to `#{ticket}`: #{jiraUrl}/browse/#{ticket}"
+        send msg, "Assigned <@#{slackUser.id}> to `#{ticket}`: #{jiraUrl}/browse/#{ticket}"
       .catch (error) ->
-        msg.send "<@#{msg.message.user.id}> Error: `#{error}`"
+        send msg, "Error: `#{error}`"
     else
-      msg.send "<@#{msg.message.user.id}> Cannot find slack user `#{person}`"
+      send msg, "Cannot find slack user `#{person}`"
 
   addComment = (msg) ->
     msg.finish()
@@ -348,9 +351,9 @@ module.exports = (robot) ->
           https://#{robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}
         """
     .then () ->
-      msg.send "<@#{msg.message.user.id}> Added comment to `#{ticket}`: #{jiraUrl}/browse/#{ticket}"
+      send msg, "Added comment to `#{ticket}`: #{jiraUrl}/browse/#{ticket}"
     .catch (error) ->
-      msg.send "<@#{msg.message.user.id}> Error: `#{error}`"
+      send msg, "Error: `#{error}`"
 
   robot.respond commandsPattern, (msg) ->
     [ __, command ] = msg.match
@@ -460,4 +463,4 @@ module.exports = (robot) ->
     else
       responses = [ overview, opening, rank, comment, assignment, transition ]
 
-    msg.send "<@#{msg.message.user.id}>\n#{responses.join '\n\n\n'}"
+    send msg, "\n#{responses.join '\n\n\n'}"
