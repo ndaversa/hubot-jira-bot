@@ -180,15 +180,15 @@ module.exports = (robot) ->
         method: "POST"
         body: JSON.stringify issue
     .then (json) ->
-      issue = json.key
-      send msg, "Ticket created: #{jiraUrl}/browse/#{issue}"
+      ticket = json.key
+      send msg, "Created <#{jiraUrl}/browse/#{ticket}|#{ticket}>"
 
       if toState
-        msg.match = [ message, issue, toState ]
+        msg.match = [ message, ticket, toState ]
         handleTransitionRequest msg
 
       if assignee
-        msg.match = [ message, issue, assignee ]
+        msg.match = [ message, ticket, assignee ]
         handleAssignRequest msg
     .catch (error) ->
       send msg, "Unable to create ticket #{error}"
@@ -276,14 +276,14 @@ module.exports = (robot) ->
       type = _(transitions).find (type) -> type.name is toState
       transition = json.transitions.find (state) -> state.to.name.toLowerCase() is type.jira.toLowerCase()
       if transition
-        send msg, "Transitioning `#{ticket}` to `#{transition.to.name}`"
+        send msg, "Transitioning <#{jiraUrl}/browse/#{ticket}|#{ticket}> to `#{transition.to.name}`"
         fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}/transitions",
           method: "POST"
           body: JSON.stringify
             transition:
               id: transition.id
       else
-        send msg, "#{ticket} is a `#{json.fields.issuetype.name}` and does not support transitioning from `#{json.fields.status.name}` to `#{type.jira}` :middle_finger:"
+        send msg, "<#{jiraUrl}/browse/#{ticket}|#{ticket}> is a `#{json.fields.issuetype.name}` and does not support transitioning from `#{json.fields.status.name}` to `#{type.jira}` :middle_finger:"
     .catch (error) ->
       send msg, "An error has occured: #{error}"
 
@@ -306,7 +306,7 @@ module.exports = (robot) ->
       else
         throw "Cannot find ticket `#{ticket}`"
     .then () ->
-      send msg, "Ranked `#{ticket}` to `#{direction}`"
+      send msg, "Ranked <#{jiraUrl}/browse/#{ticket}|#{ticket}> to `#{direction}`"
     .catch (error) ->
       send msg, "An error has occured: #{error}"
 
@@ -331,7 +331,7 @@ module.exports = (robot) ->
         else
           send msg, "Cannot find jira user <@#{slackUser.id}>"
       .then () ->
-        send msg, "Assigned <@#{slackUser.id}> to `#{ticket}`: #{jiraUrl}/browse/#{ticket}"
+        send msg, "Assigned <@#{slackUser.id}> to <#{jiraUrl}/browse/#{ticket}|#{ticket}>"
       .catch (error) ->
         send msg, "Error: `#{error}`"
     else
@@ -351,7 +351,7 @@ module.exports = (robot) ->
           https://#{robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}
         """
     .then () ->
-      send msg, "Added comment to `#{ticket}`: #{jiraUrl}/browse/#{ticket}"
+      send msg, "Added comment to <#{jiraUrl}/browse/#{ticket}|#{ticket}>"
     .catch (error) ->
       send msg, "Error: `#{error}`"
 
