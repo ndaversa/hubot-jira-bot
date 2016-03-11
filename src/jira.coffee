@@ -135,7 +135,7 @@ module.exports = (robot) ->
     .then (user) ->
       reporter = user[0] if user and user.length is 1
       quoteRegex = /`{1,3}([^]*?)`{1,3}/
-      labelsRegex = /\s+#\S+/g
+      labelsRegex = /(?:\s+|^)#\S+/g
       priorityRegex = eval "/\\s+!(#{(priorities.map (priority) -> priority.name).join '|'})\\b/i" if priorities
       mentionRegex = eval "/(?:@([\\w._]*))/i"
 
@@ -361,12 +361,12 @@ module.exports = (robot) ->
     project = projects[room]
     type = types[command]
 
-    if not project
+    unless project
       channels = []
       for team, key of projects
         channel = robot.adapter.client.getChannelGroupOrDMByName team
         channels.push " <\##{channel.id}|#{channel.name}>" if channel
-      return msg.reply "#{type} must be submitted in one of the following project channels:" + channels
+      return msg.reply "#{type} must be submitted in one of the following project channels: #{channels}"
 
     report project, type, msg
 
