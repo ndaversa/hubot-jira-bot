@@ -82,6 +82,7 @@ module.exports = (robot) ->
   rankRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+)) rank (up|down|top|bottom)/i"
   assignRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+)) assign @?([\\w._]*)/i"
   commentRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+))\\s?(?\:<\\s?)([^]+)/i"
+  labelsRegex = /(?:\s+|^)#\S+/g
 
   priorities = JSON.parse process.env.HUBOT_JIRA_PRIORITIES_MAP if process.env.HUBOT_JIRA_PRIORITIES_MAP
 
@@ -138,7 +139,6 @@ module.exports = (robot) ->
     .then (user) ->
       reporter = user[0] if user and user.length is 1
       quoteRegex = /`{1,3}([^]*?)`{1,3}/
-      labelsRegex = /(?:\s+|^)#\S+/g
       priorityRegex = eval "/\\s+!(#{(priorities.map (priority) -> priority.name).join '|'})\\b/i" if priorities
       mentionRegex = eval "/(?:@([\\w._]*))/i"
 
@@ -470,20 +470,6 @@ module.exports = (robot) ->
 
     report project, type, msg
 
-  robot.hear transitionRegex, handleTransitionRequest if transitions
-  robot.hear rankRegex, handleRankRequest
-  robot.hear assignRegex, handleAssignRequest
-  robot.hear commentRegex, addComment
-
-  robot.hear jiraUrlRegexGlobal, (msg) ->
-    [ __, ticket ] = msg.match
-    matches = msg.match.map (match) ->
-      match.match(jiraUrlRegex)[1]
-    msg.match = matches
-    buildJiraTicketOutput msg
-
-  robot.listen matchJiraTicket, buildJiraTicketOutput
-
   robot.respond /(?:help jira|jira help)(?: (.*))?/, (msg) ->
     [ __, topic] = msg.match
 
@@ -550,6 +536,16 @@ module.exports = (robot) ->
     and `<state>` is one of the following: #{(transitions.map (t) -> "`#{t.name}`").join ',  '}
     """
 
+    search = """
+    *Searching Tickets*
+    > #{robot.name} jira search `<term>`
+        *Optional `<term>` Attributes*
+            _Labels_: include one or many hashtags that will become labels included in the search
+                 `#quick #techdebt`
+
+    Where `<term>` is some text contained in the ticket you are looking for
+    """
+
     if _(["report", "open", "file", commands.split '|']).chain().flatten().contains(topic).value()
       responses = [ opening ]
     else if _(["rank", "ranking"]).contains topic
@@ -560,7 +556,66 @@ module.exports = (robot) ->
       responses = [ assignment ]
     else if _(["transition", "transitions", "state", "move"]).contains topic
       responses = [ transition ]
+    else if _(["search", "searching"]).contains topic
+      responses = [ search ]
     else
-      responses = [ overview, opening, rank, comment, assignment, transition ]
+      responses = [ overview, opening, rank, comment, assignment, transition, search ]
 
     send msg, "\n#{responses.join '\n\n\n'}"
+
+  robot.respond /(?:j|jira) (?:s|search|find|query) (.+)/, (msg) ->
+    [__, term] = msg.match
+    room = msg.message.room
+    project = projects[room]
+
+    labels = []
+    if labelsRegex.test term
+      labels = (term.match(labelsRegex).map((label) -> label.replace('#', '').trim())).concat(labels)
+      term = term.replace labelsRegex, ""
+
+    jql = "text ~ \"#{term}\""
+    noResults = "No results for #{term}"
+    found = "Found __xx__ issues containing `#{term}`"
+
+    if project
+      jql += " and project = #{project}"
+      noResults += " in project `#{project}`"
+      found += " in project `#{project}`"
+
+    if labels.length > 0
+      jql += " and labels = #{label}" for label in labels
+      noResults += " with labels `#{labels.join ', '}`"
+      found += " with labels `#{labels.join ', '}`"
+
+    fetch "#{jiraUrl}/rest/api/2/search",
+      method: "POST"
+      body: JSON.stringify
+        jql: jql
+        startAt: 0
+        maxResults: 5
+        fields: [
+          "summary"
+          "issuetype"
+        ]
+    .then (json) ->
+      return send msg, noResults unless json.issues.length > 0
+      attachments = []
+      attachments.push buildJiraAttachment issue, no for issue in json.issues
+      send msg,
+        text: found.replace "__xx__", json.total
+        attachments: attachments
+
+  robot.hear transitionRegex, handleTransitionRequest if transitions
+  robot.hear rankRegex, handleRankRequest
+  robot.hear assignRegex, handleAssignRequest
+  robot.hear commentRegex, addComment
+
+  robot.hear jiraUrlRegexGlobal, (msg) ->
+    [ __, ticket ] = msg.match
+    matches = msg.match.map (match) ->
+      match.match(jiraUrlRegex)[1]
+    msg.match = matches
+    buildJiraTicketOutput msg
+
+  robot.listen matchJiraTicket, buildJiraTicketOutput
+
