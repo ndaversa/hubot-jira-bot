@@ -307,6 +307,7 @@ module.exports = (robot) ->
 
       fetch("#{jiraUrl}/rest/api/2/issue/#{ticket}")
       .then (json) ->
+        throw "<#{jiraUrl}/browse/#{ticket}|#{ticket}> does not exist" unless json
         id = json.id
         jira = buildJiraAttachment json
         attachments.push jira
@@ -347,6 +348,7 @@ module.exports = (robot) ->
     .catch (error) ->
       send msg, message
       send msg, "*Error:* #{error}"
+      robot.logger.error error.stack
 
   handleTransitionRequest = (msg, includeAttachment=yes) ->
     msg.finish()
