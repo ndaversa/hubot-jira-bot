@@ -32,10 +32,13 @@ Fuse = require 'fuse.js'
 module.exports = (robot) ->
   jiraUrl = process.env.HUBOT_JIRA_URL
 
-  send = (context, message, prependUsername=yes) ->
-    robot.adapter.customMessage
-      channel: context.message.room
-      text: "#{if prependUsername then "<@#{context.message.user.id}> " else ""}#{message}"
+  send = (context, message) ->
+    payload = channel: context.message.room
+    if _(message).isString()
+      payload.text = message
+    else
+      payload = _(payload).extend message
+    robot.adapter.customMessage payload
 
   fetch = (url, opts) ->
     robot.logger.info "Fetching: #{url}"
@@ -82,7 +85,6 @@ module.exports = (robot) ->
 
   priorities = JSON.parse process.env.HUBOT_JIRA_PRIORITIES_MAP if process.env.HUBOT_JIRA_PRIORITIES_MAP
 
-
   lookupSlackUser = (username) ->
     users = robot.brain.users()
     result = (users[user] for user of users when users[user].name is username)
@@ -90,11 +92,11 @@ module.exports = (robot) ->
       return result[0]
     return null
 
-  lookupUserWithJira = (jira) ->
+  lookupUserWithJira = (jira, fallback=no) ->
     users = robot.brain.users()
     result = (users[user] for user of users when users[user].email_address is jira.emailAddress) if jira
     if result?.length is 1
-      return "<@#{result[0].id}>"
+      return if fallback then result[0].name else "<@#{result[0].id}>"
     else if jira
       return jira.displayName
     else
@@ -124,6 +126,7 @@ module.exports = (robot) ->
   report = (project, type, msg) ->
     reporter = null
     assignee = null
+    issue = null
     [__, command, message] = msg.match
 
     if transitions
@@ -180,16 +183,18 @@ module.exports = (robot) ->
         method: "POST"
         body: JSON.stringify issue
     .then (json) ->
-      ticket = json.key
-      send msg, "Created <#{jiraUrl}/browse/#{ticket}|#{ticket}>"
+      issue.key = json.key
+      send msg,
+        text: "Ticket created"
+        attachments: [ buildJiraAttachment issue, no ]
 
       if toState
-        msg.match = [ message, ticket, toState ]
-        handleTransitionRequest msg
+        msg.match = [ message, json.key, toState ]
+        handleTransitionRequest msg, no
 
       if assignee
-        msg.match = [ message, ticket, assignee ]
-        handleAssignRequest msg
+        msg.match = [ message, json.key, assignee ]
+        handleAssignRequest msg, no
     .catch (error) ->
       send msg, "Unable to create ticket #{error}"
 
@@ -211,27 +216,114 @@ module.exports = (robot) ->
               return matches
     return false
 
+  buildGithubAttachment = (pr, assignee) ->
+    color: "#ff9933"
+    author_name: pr.user.login
+    author_icon: pr.user.avatarUrl
+    author_link: pr.user.htmlUrl
+    title: pr.title
+    title_link: pr.htmlUrl
+    fields: [
+      title: "Updated"
+      value: moment(pr.updatedAt).fromNow()
+      short: yes
+    ,
+      title: "Status"
+      value: if pr.mergeable then "Mergeable" else "Unresolved Conflicts"
+      short: yes
+    ,
+      title: "Assignee"
+      value: if assignee then "<@#{assignee.id}>" else "Unassigned"
+      short: yes
+    ,
+      title: "Lines"
+      value: "+#{pr.additions} -#{pr.deletions}"
+      short: yes
+    ]
+    fallback: """
+      *#{pr.title}* +#{pr.additions} -#{pr.deletions}
+      Updated: *#{moment(pr.updatedAt).fromNow()}*
+      Status: #{if pr.mergeable then "Mergeable" else "Unresolved Conflicts"}
+      Author: #{pr.user.login}
+      Assignee: #{if assignee then "#{assignee.name}" else "Unassigned"}
+    """
+
+  buildJiraAttachment = (json, includeFields=yes) ->
+    colors = [
+      keywords: "story feature improvement epic"
+      color: "#14892c"
+    ,
+      keywords: "bug"
+      color: "#d04437"
+    ,
+      keywords: "experiment exploratory task"
+      color: "#f6c342"
+    ]
+    f = new Fuse colors, keys: ['keywords'], shouldSort: yes
+    results = f.search json.fields.issuetype.name
+    result = if results? and results.length >=1 then results[0] else color: "#003366"
+
+    fields = []
+    fieldsFallback = ""
+    if includeFields
+      fields = [
+        title: "Status"
+        value: json.fields.status.name
+        short: yes
+      ,
+        title: "Assignee"
+        value: lookupUserWithJira json.fields.assignee
+        short: yes
+      ,
+        title: "Reporter"
+        value: lookupUserWithJira json.fields.reporter
+        short: yes
+      ]
+      fieldsFallback = """
+        Status: #{json.fields.status.name}
+        Assignee: #{lookupUserWithJira json.fields.assignee, yes}
+        Reporter: #{lookupUserWithJira json.fields.reporter, yes}
+      """
+
+    color: result.color
+    author_name: json.key
+    author_link: "#{jiraUrl}/browse/#{json.key}"
+    author_icon: "https://slack.global.ssl.fastly.net/12d4/img/services/jira_128.png"
+    title: json.fields.summary.trim()
+    title_link: "#{jiraUrl}/browse/#{json.key}"
+    fields: fields
+    fallback: """
+      *#{json.key} - #{json.fields.summary.trim()}*
+      #{fieldsFallback}
+    """
+
   buildJiraTicketOutput = (msg) ->
+    message = {}
     Promise.all(msg.match.map (issue) ->
-      message = ""
       id = ""
+      jira = {}
+      attachments = []
       ticket = issue.trim().toUpperCase()
+
       fetch("#{jiraUrl}/rest/api/2/issue/#{ticket}")
       .then (json) ->
         id = json.id
-        message = """
-          *<#{jiraUrl}/browse/#{ticket}|#{json.key}> - #{json.fields.summary.trim()}*
-          Status: #{json.fields.status.name}
-          Assignee: #{lookupUserWithJira json.fields.assignee}
-          Reporter: #{lookupUserWithJira json.fields.reporter}
-        """
+        jira = buildJiraAttachment json
+        attachments.push jira
       .then (json) ->
         fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}/watchers"
       .then (json) ->
         if json.watchCount > 0
           watchers = []
-          watchers.push lookupUserWithJira watcher for watcher in json.watchers
-          message += "\nWatchers: #{watchers.join ', '}"
+          fallbackWatchers = []
+          for watcher in json.watchers
+            watchers.push lookupUserWithJira watcher
+            fallbackWatchers.push lookupUserWithJira watcher, yes
+          jira.fields.push
+            title: "Watchers"
+            value: watchers.join ', '
+            short: yes
+          jira.fallback += "\nWatchers: #{fallbackWatchers.join ', '}"
       .then (json) ->
         fetch "#{jiraUrl}/rest/dev-status/1.0/issue/detail?issueId=#{id}&applicationType=github&dataType=branch"
       .then (json) ->
@@ -244,29 +336,19 @@ module.exports = (robot) ->
       .then (prs) ->
         return Promise.all prs.map (pr) ->
           return if not pr
-          author = lookupUserWithGithub pr.user
           assignee = lookupUserWithGithub pr.assignee
-          return Promise.all [ pr, author, assignee ]
+          return Promise.all [ pr, assignee ]
       .then (prs) ->
-        for p in prs when p
-          pr = p[0]
-          author = p[1]
-          assignee = p[2]
-          message += """\n
-            *<#{pr.htmlUrl}|#{pr.title}>* +#{pr.additions} -#{pr.deletions}
-            Updated: *#{moment(pr.updatedAt).fromNow()}*
-            Status: #{if pr.mergeable then "Mergeable" else "Unresolved Conflicts"}
-            Author: #{if author then "<@#{author.id}>" else "Unknown"}
-            Assignee: #{if assignee then "<@#{assignee.id}>" else "Unassigned"}
-          """
-        return message
-    ).then (messages) ->
-      send msg, message, no for message in messages
+        attachments.push buildGithubAttachment p[0], p[1] for p in prs when p
+        return attachments
+    ).then (attachments) ->
+      message.attachments = _(attachments).flatten()
+      send msg, message
     .catch (error) ->
-      send msg, message, no for message in messages
+      send msg, message
       send msg, "*Error:* #{error}"
 
-  handleTransitionRequest = (msg) ->
+  handleTransitionRequest = (msg, includeAttachment=yes) ->
     msg.finish()
     [ __, ticket, toState ] = msg.match
     ticket = ticket.toUpperCase()
@@ -276,14 +358,19 @@ module.exports = (robot) ->
       type = _(transitions).find (type) -> type.name is toState
       transition = json.transitions.find (state) -> state.to.name.toLowerCase() is type.jira.toLowerCase()
       if transition
-        send msg, "Transitioning <#{jiraUrl}/browse/#{ticket}|#{ticket}> to `#{transition.to.name}`"
+        send msg,
+          text: "Transitioning <#{jiraUrl}/browse/#{ticket}|#{ticket}> to `#{transition.to.name}`"
+          attachments: [ buildJiraAttachment json, no ] if includeAttachment
+
         fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}/transitions",
           method: "POST"
           body: JSON.stringify
             transition:
               id: transition.id
       else
-        send msg, "<#{jiraUrl}/browse/#{ticket}|#{ticket}> is a `#{json.fields.issuetype.name}` and does not support transitioning from `#{json.fields.status.name}` to `#{type.jira}` :middle_finger:"
+        send msg,
+          text: "<#{jiraUrl}/browse/#{ticket}|#{ticket}> is a `#{json.fields.issuetype.name}` and does not support transitioning from `#{json.fields.status.name}` to `#{type.jira}`"
+          attachments: [ buildJiraAttachment json, no ] if includeAttachment
     .catch (error) ->
       send msg, "An error has occured: #{error}"
 
@@ -305,12 +392,15 @@ module.exports = (robot) ->
         #Note: this fetch returns HTML and cannot be validated/parsed for success
       else
         throw "Cannot find ticket `#{ticket}`"
-    .then () ->
-      send msg, "Ranked <#{jiraUrl}/browse/#{ticket}|#{ticket}> to `#{direction}`"
+      json
+    .then (json) ->
+      send msg,
+        text: "Ranked <#{jiraUrl}/browse/#{ticket}|#{ticket}> to `#{direction}`"
+        attachments: [ buildJiraAttachment json, no ]
     .catch (error) ->
       send msg, "An error has occured: #{error}"
 
-  handleAssignRequest = (msg) ->
+  handleAssignRequest = (msg, includeAttachment=yes) ->
     msg.finish()
     [ __, ticket, person ] = msg.match
     person = if person is "me" then msg.message.user.name else person
@@ -331,7 +421,11 @@ module.exports = (robot) ->
         else
           send msg, "Cannot find jira user <@#{slackUser.id}>"
       .then () ->
-        send msg, "Assigned <@#{slackUser.id}> to <#{jiraUrl}/browse/#{ticket}|#{ticket}>"
+        fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}"
+      .then (json) ->
+        send msg,
+          text: "Assigned <@#{slackUser.id}> to <#{jiraUrl}/browse/#{ticket}|#{ticket}>"
+          attachments: [ buildJiraAttachment json, no ] if includeAttachment
       .catch (error) ->
         send msg, "Error: `#{error}`"
     else
@@ -351,7 +445,11 @@ module.exports = (robot) ->
           https://#{robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}
         """
     .then () ->
-      send msg, "Added comment to <#{jiraUrl}/browse/#{ticket}|#{ticket}>"
+      fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}"
+    .then (json) ->
+      send msg,
+        text: "Added comment to <#{jiraUrl}/browse/#{ticket}|#{ticket}>"
+        attachments: [ buildJiraAttachment json, no ]
     .catch (error) ->
       send msg, "Error: `#{error}`"
 
