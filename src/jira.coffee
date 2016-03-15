@@ -708,7 +708,7 @@ module.exports = (robot) ->
         when "point_up_2", "point_down"
           handleRankRequest
             message: room: msg.item.channel
-            match: [ "", ticket, if msg.reaction is "+1" then "up" else "down" ]
+            match: [ "", ticket, if msg.reaction is "point_up_2" then "up" else "down" ]
           , no
         when "watch"
           handleWatchRequest
