@@ -633,10 +633,11 @@ module.exports = (robot) ->
     send msg, "\n#{responses.join '\n\n\n'}"
 
   robot.on "jira_ticket_created_message", (msg) ->
-    reactions = ["+1", "-1", "watch", "raising_hand", "white_check_mark", "fast_forward"]
+    reactions = ["point_up_2", "point_down", "watch", "raising_hand", "soon", "fast_forward"]
     dispatchNextReaction = ->
       reaction = reactions.shift()
       return unless reaction
+      console.log "#{} reaction #{reaction}"
       params =
         channel: msg.channel
         timestamp: msg.ts
@@ -704,7 +705,7 @@ module.exports = (robot) ->
     getTicketInChannelByTs(msg.item.channel, msg.item.ts)
     .then (ticket) ->
       switch msg.reaction
-        when "+1", "-1"
+        when "point_up_2", "point_down"
           handleRankRequest
             message: room: msg.item.channel
             match: [ "", ticket, if msg.reaction is "+1" then "up" else "down" ]
@@ -714,8 +715,8 @@ module.exports = (robot) ->
             message: room: msg.item.channel
             match: [ "", ticket, robot.adapter.client.getUserByID(msg.user).name ]
           , no
-        when "white_check_mark", "fast_forward"
-          term = if msg.reaction is "white_check_mark" then "done" else "progress"
+        when "soon", "fast_forward"
+          term = if msg.reaction is "soon" then "selected" else "progress"
           result = fuzzyFind term, transitions, ['jira']
           if result
             handleTransitionRequest
