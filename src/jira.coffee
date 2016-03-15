@@ -28,6 +28,7 @@ nodeFetch = require 'node-fetch'
 moment = require 'moment'
 Octokat = require 'octokat'
 Fuse = require 'fuse.js'
+TICKET_CREATED_TEXT = "Ticket created"
 
 module.exports = (robot) ->
   jiraUrl = process.env.HUBOT_JIRA_URL
@@ -41,14 +42,15 @@ module.exports = (robot) ->
     robot.adapter.customMessage payload
 
   fetch = (url, opts) ->
-    robot.logger.info "Fetching: #{url}"
     options =
       headers:
         "X-Atlassian-Token": "no-check"
         "Content-Type": "application/json"
         "Authorization": 'Basic ' + new Buffer("#{process.env.HUBOT_JIRA_USERNAME}:#{process.env.HUBOT_JIRA_PASSWORD}").toString('base64')
     options = _(options).extend opts
+    options.headers["Content-Length"] = options.body.length if options.method is "POST"
 
+    robot.logger.info "Fetching: #{url}"
     nodeFetch(url,options).then (response) ->
       if response.status >= 200 and response.status < 300
         return response
@@ -57,9 +59,10 @@ module.exports = (robot) ->
         error.response = response
         throw error
     .then (response) ->
-      response.json()
+      response.json() if response.status isnt 204
     .catch (error) ->
       robot.logger.error error.stack
+      throw error
 
   token = process.env.HUBOT_GITHUB_TOKEN
   octo = new Octokat token: token
@@ -80,6 +83,7 @@ module.exports = (robot) ->
   transitions = JSON.parse process.env.HUBOT_JIRA_TRANSITIONS_MAP if process.env.HUBOT_JIRA_TRANSITIONS_MAP
   transitionRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+))\\s+(?\:to\\s+|>\\s?)(#{(transitions.map (t) -> t.name).join "|"})/i" if transitions
   rankRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+)) rank (up|down|top|bottom)/i"
+  watchRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+)) watch(?: @?([\\w._]*))?/i"
   assignRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+)) assign @?([\\w._]*)/i"
   commentRegex = eval "/(?\:^|\\s)((?\:#{prefixes}-)(?\:\\d+))\\s?(?\:<\\s?)([^]+)/i"
   labelsRegex = /(?:\s+|^)#\S+/g
@@ -123,6 +127,14 @@ module.exports = (robot) ->
       results = f.search name
       result = if results? and results.length >=1 then results[0] else undefined
       return result
+
+  buildQueryString = (params) ->
+    "?#{("#{encodeURIComponent k}=#{encodeURIComponent v}" for k,v of params when v).join "&"}"
+
+  fuzzyFind = (term, arr, keys) ->
+    f = new Fuse arr, keys: keys, shouldSort: yes
+    results = f.search term
+    result = if results? and results.length >=1 then results[0]
 
   report = (project, type, msg) ->
     reporter = null
@@ -185,7 +197,7 @@ module.exports = (robot) ->
     .then (json) ->
       issue.key = json.key
       send msg,
-        text: "Ticket created"
+        text: TICKET_CREATED_TEXT
         attachments: [ buildJiraAttachment issue, no ]
 
       if toState
@@ -259,9 +271,7 @@ module.exports = (robot) ->
       keywords: "experiment exploratory task"
       color: "#f6c342"
     ]
-    f = new Fuse colors, keys: ['keywords'], shouldSort: yes
-    results = f.search json.fields.issuetype.name
-    result = if results? and results.length >=1 then results[0] else color: "#003366"
+    result = fuzzyFind json.fields.issuetype.name, colors, ['keywords']
 
     fields = []
     fieldsFallback = ""
@@ -351,7 +361,7 @@ module.exports = (robot) ->
       robot.logger.error error.stack
 
   handleTransitionRequest = (msg, includeAttachment=yes) ->
-    msg.finish()
+    msg.finish?()
     [ __, ticket, toState ] = msg.match
     ticket = ticket.toUpperCase()
 
@@ -376,8 +386,8 @@ module.exports = (robot) ->
     .catch (error) ->
       send msg, "An error has occured: #{error}"
 
-  handleRankRequest = (msg) ->
-    msg.finish()
+  handleRankRequest = (msg, includeAttachment=yes) ->
+    msg.finish?()
     [ __, ticket, direction ] = msg.match
     ticket = ticket.toUpperCase()
     direction = direction.toLowerCase()
@@ -398,12 +408,12 @@ module.exports = (robot) ->
     .then (json) ->
       send msg,
         text: "Ranked <#{jiraUrl}/browse/#{ticket}|#{ticket}> to `#{direction}`"
-        attachments: [ buildJiraAttachment json, no ]
+        attachments: [ buildJiraAttachment json, no ] if includeAttachment
     .catch (error) ->
       send msg, "An error has occured: #{error}"
 
   handleAssignRequest = (msg, includeAttachment=yes) ->
-    msg.finish()
+    msg.finish?()
     [ __, ticket, person ] = msg.match
     person = if person is "me" then msg.message.user.name else person
     ticket = ticket.toUpperCase()
@@ -413,15 +423,14 @@ module.exports = (robot) ->
       fetch("#{jiraUrl}/rest/api/2/user/search?username=#{slackUser.email_address}")
       .then (user) ->
         jiraUser = user[0] if user and user.length is 1
-        if jiraUser
-          fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}",
-            method: "PUT"
-            body: JSON.stringify
-              fields:
-                assignee:
-                  name: jiraUser.name
-        else
-          send msg, "Cannot find jira user <@#{slackUser.id}>"
+        throw "Cannot find jira user <@#{slackUser.id}>" unless jiraUser
+
+        fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}",
+          method: "PUT"
+          body: JSON.stringify
+            fields:
+              assignee:
+                name: jiraUser.name
       .then () ->
         fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}"
       .then (json) ->
@@ -433,8 +442,36 @@ module.exports = (robot) ->
     else
       send msg, "Cannot find slack user `#{person}`"
 
+  handleWatchRequest = (msg, includeAttachment=yes) ->
+    msg.finish?()
+    [ __, ticket, person ] = msg.match
+    person = if person is "me" or not person then msg.message.user.name else person
+
+    ticket = ticket.toUpperCase()
+    slackUser = lookupSlackUser person
+
+    if slackUser
+      fetch("#{jiraUrl}/rest/api/2/user/search?username=#{slackUser.email_address}")
+      .then (user) ->
+        jiraUser = user[0] if user and user.length is 1
+        throw "Cannot find jira user <@#{slackUser.id}>" unless jiraUser
+
+        fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}/watchers",
+          method: "POST"
+          body: JSON.stringify jiraUser.name
+      .then ->
+        fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}"
+      .then (json) ->
+        send msg,
+          text: "Added <@#{slackUser.id}> as a :watch:er on <#{jiraUrl}/browse/#{ticket}|#{ticket}>"
+          attachments: [ buildJiraAttachment json, no ] if includeAttachment
+      .catch (error) ->
+        send msg, "#{error}"
+    else
+      send msg, "Cannot find slack user `#{person}`"
+
   addComment = (msg) ->
-    msg.finish()
+    msg.finish?()
     [ __, ticket, comment ] = msg.match
 
     fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}/comment",
@@ -536,6 +573,15 @@ module.exports = (robot) ->
     and `<state>` is one of the following: #{(transitions.map (t) -> "`#{t.name}`").join ',  '}
     """
 
+    watch = """
+    *Watching Tickets*
+    > `<ticket>` watch [`@username]`]
+
+    Where `<ticket>` is the JIRA ticket number
+    `@username` is optional, if specified the corresponding JIRA user will become
+    the watcher on the ticket, if omitted the message author will become the watcher
+    """
+
     search = """
     *Searching Tickets*
     > #{robot.name} jira search `<term>`
@@ -558,10 +604,82 @@ module.exports = (robot) ->
       responses = [ transition ]
     else if _(["search", "searching"]).contains topic
       responses = [ search ]
+    else if _(["watch", "watching"]).contains topic
+      responses = [ watch ]
     else
-      responses = [ overview, opening, rank, comment, assignment, transition, search ]
+      responses = [ overview, opening, rank, comment, assignment, transition, watch, search ]
 
     send msg, "\n#{responses.join '\n\n\n'}"
+
+  robot.on "jira_ticket_created_message", (msg) ->
+    reactions = ["+1", "-1", "watch", "raising_hand", "white_check_mark", "fast_forward"]
+    dispatchNextReaction = ->
+      reaction = reactions.shift()
+      return unless reaction
+      params =
+        channel: msg.channel
+        timestamp: msg.ts
+        name: reaction
+        token: process.env.HUBOT_SLACK_TOKEN
+      fetch("https://slack.com/api/reactions.add#{buildQueryString params}").then dispatchNextReaction
+    dispatchNextReaction()
+
+  robot.adapter.client.on "raw_message", (msg) ->
+    robot.emit "jira_ticket_created_message", msg if msg.type is "message" and msg.user is robot.adapter.self.id and msg.text is TICKET_CREATED_TEXT
+    return unless msg.type is "reaction_added"
+    return unless msg.item_user is robot.adapter.self.id
+    return unless msg.user isnt robot.adapter.self.id
+
+    switch msg.item.channel[0]
+      when "G"
+        endpoint = "groups"
+      when "C"
+        endpoint = "channels"
+      else
+        return
+
+    params =
+      channel: msg.item.channel
+      latest: msg.item.ts
+      oldest: msg.item.ts
+      inclusive: 1
+      count: 1
+      token: process.env.HUBOT_SLACK_TOKEN
+
+    fetch("https://slack.com/api/#{endpoint}.history#{buildQueryString params}")
+    .then (json) ->
+      message = json.messages?[0]
+      return unless message? and message.type is "message"
+      attachment = message.attachments?[0]
+      return unless attachment?.title_link?
+      ticket = attachment.title_link.split "#{jiraUrl}/browse/"
+      return unless ticket and ticket.length is 2
+      ticket = ticket[1]
+
+      switch msg.reaction
+        when "+1", "-1"
+          handleRankRequest
+            message: room: msg.item.channel
+            match: [ "", ticket, if msg.reaction is "+1" then "up" else "down" ]
+          , no
+        when "watch"
+          handleWatchRequest
+            message: room: msg.item.channel
+            match: [ "", ticket, robot.adapter.client.getUserByID(msg.user).name ]
+          , no
+        when "white_check_mark", "fast_forward"
+          term = if msg.reaction is "white_check_mark" then "done" else "progress"
+          result = fuzzyFind term, transitions, ['jira']
+          if result
+            handleTransitionRequest
+              message: room: msg.item.channel
+              match: [ "", ticket, result.name ]
+            , no
+        when "raising_hand"
+          handleAssignRequest
+            message: room: msg.item.channel
+            match: [ "", ticket, robot.adapter.client.getUserByID(msg.user).name ]
+          , no
 
   robot.respond /(?:j|jira) (?:s|search|find|query) (.+)/, (msg) ->
     [__, term] = msg.match
@@ -607,6 +725,7 @@ module.exports = (robot) ->
 
   robot.hear transitionRegex, handleTransitionRequest if transitions
   robot.hear rankRegex, handleRankRequest
+  robot.hear watchRegex, handleWatchRequest
   robot.hear assignRegex, handleAssignRequest
   robot.hear commentRegex, addComment
 
