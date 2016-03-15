@@ -412,6 +412,22 @@ module.exports = (robot) ->
     .catch (error) ->
       send msg, "An error has occured: #{error}"
 
+  handleUnassignRequest = (msg, includeAttachment=yes) ->
+    msg.finish?()
+    [ __, ticket ] = msg.match
+    fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}",
+      method: "PUT"
+      body: JSON.stringify
+        fields:
+          assignee:
+            name: null
+    .then () ->
+      fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}"
+    .then (json) ->
+      send msg,
+        text: "Unassigned <@#{msg.message.user.id}> from <#{jiraUrl}/browse/#{ticket}|#{ticket}>"
+        attachments: [ buildJiraAttachment json, no ] if includeAttachment
+
   handleAssignRequest = (msg, includeAttachment=yes) ->
     msg.finish?()
     [ __, ticket, person ] = msg.match
@@ -442,7 +458,7 @@ module.exports = (robot) ->
     else
       send msg, "Cannot find slack user `#{person}`"
 
-  handleWatchRequest = (msg, includeAttachment=yes) ->
+  handleWatchRequest = (msg, includeAttachment=yes, remove=no) ->
     msg.finish?()
     [ __, ticket, person ] = msg.match
     person = if person is "me" or not person then msg.message.user.name else person
@@ -456,14 +472,19 @@ module.exports = (robot) ->
         jiraUser = user[0] if user and user.length is 1
         throw "Cannot find jira user <@#{slackUser.id}>" unless jiraUser
 
-        fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}/watchers",
-          method: "POST"
-          body: JSON.stringify jiraUser.name
+        fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}/watchers#{if remove then "?username=#{jiraUser.name}" else ""}",
+          method: if remove then "DELETE" else "POST"
+          body: JSON.stringify jiraUser.name unless remove
       .then ->
         fetch "#{jiraUrl}/rest/api/2/issue/#{ticket}"
       .then (json) ->
+        if remove
+          text ="Removed <@#{slackUser.id}> as a :watch:er on <#{jiraUrl}/browse/#{ticket}|#{ticket}>"
+        else
+          text ="Added <@#{slackUser.id}> as a :watch:er on <#{jiraUrl}/browse/#{ticket}|#{ticket}>"
+
         send msg,
-          text: "Added <@#{slackUser.id}> as a :watch:er on <#{jiraUrl}/browse/#{ticket}|#{ticket}>"
+          text: text
           attachments: [ buildJiraAttachment json, no ] if includeAttachment
       .catch (error) ->
         send msg, "#{error}"
@@ -626,11 +647,15 @@ module.exports = (robot) ->
 
   robot.adapter.client.on "raw_message", (msg) ->
     robot.emit "jira_ticket_created_message", msg if msg.type is "message" and msg.user is robot.adapter.self.id and msg.text is TICKET_CREATED_TEXT
-    return unless msg.type is "reaction_added"
     return unless msg.item_user is robot.adapter.self.id
     return unless msg.user isnt robot.adapter.self.id
+    if msg.type is "reaction_added"
+      handleReactionAdded msg
+    else if msg.type is "reaction_removed"
+      handleReactionRemoved msg
 
-    switch msg.item.channel[0]
+  getTicketInChannelByTs = (channel, ts) ->
+    switch channel[0]
       when "G"
         endpoint = "groups"
       when "C"
@@ -639,9 +664,9 @@ module.exports = (robot) ->
         return
 
     params =
-      channel: msg.item.channel
-      latest: msg.item.ts
-      oldest: msg.item.ts
+      channel: channel
+      latest: ts
+      oldest: ts
       inclusive: 1
       count: 1
       token: process.env.HUBOT_SLACK_TOKEN
@@ -649,13 +674,35 @@ module.exports = (robot) ->
     fetch("https://slack.com/api/#{endpoint}.history#{buildQueryString params}")
     .then (json) ->
       message = json.messages?[0]
-      return unless message? and message.type is "message"
+      throw "Cannot find message at timestamp provided" unless message? and message.type is "message"
       attachment = message.attachments?[0]
-      return unless attachment?.title_link?
+      throw "Message does not contain an attachment with a title link" unless attachment?.title_link?
       ticket = attachment.title_link.split "#{jiraUrl}/browse/"
-      return unless ticket and ticket.length is 2
-      ticket = ticket[1]
+      throw "Cannot find jira ticket" unless ticket and ticket.length is 2
+      return ticket[1]
+    .catch (error) ->
+      robot.logger.info error
 
+  handleReactionRemoved = (msg) ->
+    getTicketInChannelByTs(msg.item.channel, msg.item.ts)
+    .then (ticket) ->
+      switch msg.reaction
+        when "watch"
+          handleWatchRequest
+            message: room: msg.item.channel
+            match: [ "", ticket, robot.adapter.client.getUserByID(msg.user).name ]
+          , no, yes
+        when "raising_hand"
+          handleUnassignRequest
+            message:
+              room: msg.item.channel
+              user: id: msg.user
+            match: [ "", ticket]
+          , no
+
+  handleReactionAdded = (msg) ->
+    getTicketInChannelByTs(msg.item.channel, msg.item.ts)
+    .then (ticket) ->
       switch msg.reaction
         when "+1", "-1"
           handleRankRequest
