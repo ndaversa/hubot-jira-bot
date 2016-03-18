@@ -7,22 +7,21 @@ class PullRequest
     @[k] = v for k,v of json
 
   toAttachment: ->
-    self = @
     Utils.lookupUserWithGithub(@assignee)
-    .then (assignee) ->
+    .then (assignee) =>
       color: "#ff9933"
-      author_name: self.user.login
-      author_icon: self.user.avatarUrl
-      author_link: self.user.htmlUrl
-      title: self.title
-      title_link: self.htmlUrl
+      author_name: @user.login
+      author_icon: @user.avatarUrl
+      author_link: @user.htmlUrl
+      title: @title
+      title_link: @htmlUrl
       fields: [
         title: "Updated"
-        value: moment(self.updatedAt).fromNow()
+        value: moment(@updatedAt).fromNow()
         short: yes
       ,
         title: "Status"
-        value: if self.mergeable then "Mergeable" else "Unresolved Conflicts"
+        value: if @mergeable then "Mergeable" else "Unresolved Conflicts"
         short: yes
       ,
         title: "Assignee"
@@ -30,14 +29,14 @@ class PullRequest
         short: yes
       ,
         title: "Lines"
-        value: "+#{self.additions} -#{self.deletions}"
+        value: "+#{@additions} -#{@deletions}"
         short: yes
       ]
       fallback: """
-        *#{self.title}* +#{self.additions} -#{self.deletions}
-        Updated: *#{moment(self.updatedAt).fromNow()}*
-        Status: #{if self.mergeable then "Mergeable" else "Unresolved Conflicts"}
-        Author: #{self.user.login}
+        *#{@title}* +#{@additions} -#{@deletions}
+        Updated: *#{moment(@updatedAt).fromNow()}*
+        Status: #{if @mergeable then "Mergeable" else "Unresolved Conflicts"}
+        Author: #{@user.login}
         Assignee: #{if assignee then "#{assignee.name}" else "Unassigned"}
       """
 

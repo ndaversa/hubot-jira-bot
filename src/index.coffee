@@ -39,9 +39,7 @@ class JiraBot
     return new JiraBot @robot unless @ instanceof JiraBot
 
     Utils.robot = @robot
-    if @robot.adapterName is "slack"
-      Slack.robot = @robot
-      new Slack @robot
+    @slack = new Slack @robot if @robot.adapterName is "slack"
     @registerEventListeners()
     @registerRobotResponses()
 
