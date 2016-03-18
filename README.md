@@ -1,7 +1,8 @@
 # Hubot Jira Bot
-Quickly file JIRA tickets with hubot
-Also listens for mention of tickets and responds with information
-And transition tickets as well
+Lets you search for JIRA tickets, open
+them, transition them thru different states, comment on them, rank
+them up or down, start or stop watching them or change who is
+assigned to a ticket
 
 ###Dependencies:
 - moment
