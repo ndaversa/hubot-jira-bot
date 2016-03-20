@@ -54,12 +54,13 @@ class Ticket
     color: result.color
     author_name: @key
     author_link: "#{Config.jira.url}/browse/#{@key}"
-    author_icon: "https://slack.global.ssl.fastly.net/12d4/img/services/jira_128.png"
+    author_icon: if @fields.assignee? then @fields.assignee.avatarUrls["32x32"] else "https://slack.global.ssl.fastly.net/12d4/img/services/jira_128.png"
     title: @fields.summary.trim()
     title_link: "#{Config.jira.url}/browse/#{@key}"
     fields: fields
     fallback: """
       *#{@key} - #{@fields.summary.trim()}*
+      #{Config.jira.url}/browse/#{@key}
       #{fieldsFallback}
     """
 module.exports = Ticket

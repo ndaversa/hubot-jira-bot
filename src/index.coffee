@@ -30,7 +30,7 @@ Config = require "./config"
 Github = require "./github"
 Help = require "./help"
 Jira = require "./jira"
-Slack = require "./slack"
+Adapters = require "./adapters"
 Utils = require "./utils"
 
 class JiraBot
@@ -39,17 +39,17 @@ class JiraBot
     return new JiraBot @robot unless @ instanceof JiraBot
 
     Utils.robot = @robot
-    @slack = new Slack @robot if @robot.adapterName is "slack"
+    switch @robot.adapterName
+      when "slack"
+        @adapter = new Adapters.Slack @robot
+      else
+        @adapter = new Adapters.Generic @robot
+
     @registerEventListeners()
     @registerRobotResponses()
 
   send: (context, message) ->
-    payload = channel: context.message.room
-    if _(message).isString()
-      payload.text = message
-    else
-      payload = _(payload).extend message
-    @robot.adapter.customMessage payload
+    @adapter.send context, message
 
   matchJiraTicket: (message) ->
     if message.match?
@@ -93,7 +93,7 @@ class JiraBot
     @robot.on "JiraTicketCreated", (ticket, room) =>
       @send message: room: room,
         text: Config.ticket.CREATED_TEXT
-        attachments: ticket.toAttachment no
+        attachments: [ ticket.toAttachment no ]
 
     @robot.on "JiraTicketCreationFailed", (error, room) =>
       robot.logger.error error.stack
@@ -102,8 +102,8 @@ class JiraBot
     #Transition
     @robot.on "JiraTicketTransitioned", (ticket, transition, room, includeAttachment=no) =>
       @send message: room: room,
-        text: "Transitioned <#{Config.jira.url}/browse/#{ticket.key}|#{ticket.key}> to `#{transition.to.name}`"
-        attachments: ticket.toAttachment no if includeAttachment
+        text: "Transitioned #{ticket.key} to `#{transition.to.name}`"
+        attachments: [ ticket.toAttachment no ] if includeAttachment
 
     @robot.on "JiraTicketTransitionFailed", (error, room) =>
       robot.logger.error error.stack
@@ -112,13 +112,13 @@ class JiraBot
     #Assign
     @robot.on "JiraTicketAssigned", (ticket, user, room, includeAttachment=no) =>
       @send message: room: room,
-        text: "Assigned <@#{user.id}> to <#{Config.jira.url}/browse/#{ticket.key}|#{ticket.key}>"
-        attachments: ticket.toAttachment no if includeAttachment
+        text: "Assigned <@#{user.id}> to #{ticket.key}"
+        attachments: [ ticket.toAttachment no ] if includeAttachment
 
     @robot.on "JiraTicketUnassigned", (ticket, room, includeAttachment=no) =>
       @send message: room: room,
-        text: "<#{Config.jira.url}/browse/#{ticket.key}|#{ticket.key}> is now unassigned"
-        attachments: ticket.toAttachment no if includeAttachment
+        text: "#{ticket.key} is now unassigned"
+        attachments: [ ticket.toAttachment no ] if includeAttachment
 
     @robot.on "JiraTicketAssignmentFailed", (error, room) =>
       @robot.logger.error error.stack
@@ -127,13 +127,13 @@ class JiraBot
     #Watch
     @robot.on "JiraTicketWatched", (ticket, user, room, includeAttachment=no) =>
       @send message: room: room,
-        text: "Added <@#{user.id}> as a :watch:er on <#{Config.jira.url}/browse/#{ticket.key}|#{ticket.key}>"
-        attachments: ticket.toAttachment no if includeAttachment
+        text: "Added <@#{user.id}> as a :watch:er on #{ticket.key}"
+        attachments: [ ticket.toAttachment no ] if includeAttachment
 
     @robot.on "JiraTicketUnwatched", (ticket, user, room, includeAttachment=no) =>
       @send message: room: room,
-        text: "Removed <@#{user.id}> as a :watch:er on <#{Config.jira.url}/browse/#{ticket.key}|#{ticket.key}>"
-        attachments: ticket.toAttachment no if includeAttachment
+        text: "Removed <@#{user.id}> as a :watch:er on #{ticket.key}"
+        attachments: [ ticket.toAttachment no ] if includeAttachment
 
     @robot.on "JiraTicketWatchFailed", (error, room) =>
       @robot.logger.error error.stack
@@ -142,8 +142,8 @@ class JiraBot
     #Rank
     @robot.on "JiraTicketRanked", (ticket, direction, room, includeAttachment=no) =>
       @send message: room: room,
-        text: "Ranked <#{Config.jira.url}/browse/#{ticket.key}|#{ticket.key}> to `#{direction}`"
-        attachments: ticket.toAttachment no if includeAttachment
+        text: "Ranked #{ticket.key} to `#{direction}`"
+        attachments: [ ticket.toAttachment no ] if includeAttachment
 
     @robot.on "JiraTicketRankFailed", (error, room) =>
       @robot.logger.error error.stack
@@ -152,8 +152,8 @@ class JiraBot
     #Comments
     @robot.on "JiraTicketCommented", (ticket, room, includeAttachment=no) =>
       @send message: room: room,
-        text: "Added comment to <#{Config.jira.url}/browse/#{ticket.key}|#{ticket.key}>"
-        attachments: ticket.toAttachment no if includeAttachment
+        text: "Added comment to #{ticket.key}"
+        attachments: [ ticket.toAttachment no ] if includeAttachment
 
     @robot.on "JiraTicketCommentFailed", (error, room) =>
       @robot.logger.error error.stack

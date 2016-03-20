@@ -1,3 +1,5 @@
+_ = require "underscore"
+
 Config = require "../config"
 Jira = require "../jira"
 Utils = require "../utils"
@@ -24,8 +26,16 @@ class Slack
       else if msg.type is "reaction_removed"
         @onReactionRemoved msg
 
+  send: (context, message) ->
+    payload = channel: context.message.room
+    if _(message).isString()
+      payload.text = message
+    else
+      payload = _(payload).extend message
+    @robot.adapter.customMessage payload
+
   onJiraTicketCreationMessage: (msg) =>
-    reactions = ["point_up_2", "point_down", "watch", "raising_hand", "soon", "fast_forward"]
+    reactions = ["point_up_2", "point_down", "eyes", "raising_hand", "soon", "fast_forward"]
     dispatchNextReaction = ->
       reaction = reactions.shift()
       return unless reaction
@@ -41,7 +51,7 @@ class Slack
     @getTicketKeyInChannelByTs(msg.item.channel, msg.item.ts)
     .then (key) ->
       switch msg.reaction
-        when "watch"
+        when "eyes"
           Jira.Watch.forTicketKeyRemovePerson key, null,
             robot: @robot
             message:
@@ -65,7 +75,7 @@ class Slack
             message:
               room: msg.item.channel
               user: @robot.adapter.client.getUserByID(msg.user)
-        when "watch"
+        when "eyes"
           Jira.Watch.forTicketKeyForPerson key, null,
             robot: @robot
             message:
