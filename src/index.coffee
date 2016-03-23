@@ -127,12 +127,12 @@ class JiraBot
     #Watch
     @robot.on "JiraTicketWatched", (ticket, user, room, includeAttachment=no) =>
       @send message: room: room,
-        text: "Added <@#{user.id}> as a :watch:er on #{ticket.key}"
+        text: "Added <@#{user.id}> as a watcher on #{ticket.key}"
         attachments: [ ticket.toAttachment no ] if includeAttachment
 
     @robot.on "JiraTicketUnwatched", (ticket, user, room, includeAttachment=no) =>
       @send message: room: room,
-        text: "Removed <@#{user.id}> as a :watch:er on #{ticket.key}"
+        text: "Removed <@#{user.id}> as a watcher on #{ticket.key}"
         attachments: [ ticket.toAttachment no ] if includeAttachment
 
     @robot.on "JiraTicketWatchFailed", (error, room) =>
