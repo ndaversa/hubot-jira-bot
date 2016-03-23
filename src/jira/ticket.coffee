@@ -17,6 +17,7 @@ class Ticket
       color: "#f6c342"
     ]
     result = Utils.fuzzyFind @fields.issuetype.name, colors, ['keywords']
+    result = color: "#003366" unless result
 
     fields = []
     fieldsFallback = ""
