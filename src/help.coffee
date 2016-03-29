@@ -78,6 +78,23 @@ class Help
     the watcher on the ticket, if omitted the message author will become the watcher
     """
 
+    notifications = """
+    *Ticket Notifications*
+
+    Whenever you begin watching a JIRA ticket you will be notified (via a direct
+    message from <@#{robot.adapter.self.id}>) whenever any of the following events occur:
+          - a comment is left on the ticket
+          - the ticket is in progress
+          - the ticket is resolved
+    To enable or disable this feature you can send the following directly to #{robot.name}:
+
+    > jira disable notifications
+
+    or if you wish to re-enable
+
+    > jira enable notifications
+    """
+
     search = """
     *Searching Tickets*
     > #{robot.name} jira search `<term>`
@@ -100,10 +117,10 @@ class Help
       responses = [ transition ]
     else if _(["search", "searching"]).contains topic
       responses = [ search ]
-    else if _(["watch", "watching"]).contains topic
-      responses = [ watch ]
+    else if _(["watch", "watching", "notifications", "notify"]).contains topic
+      responses = [ watch, notifications ]
     else
-      responses = [ overview, opening, rank, comment, assignment, transition, watch, search ]
+      responses = [ overview, opening, rank, comment, assignment, transition, watch, notifications, search ]
 
     return "\n#{responses.join '\n\n\n'}"
 

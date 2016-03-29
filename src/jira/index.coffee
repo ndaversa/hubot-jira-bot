@@ -7,6 +7,7 @@ Ticket = require "./ticket"
 Transition = require "./transition"
 User = require "./user"
 Watch = require "./watch"
+Webhook = require "./webhook"
 
 module.exports = {
   Assign
@@ -18,4 +19,5 @@ module.exports = {
   Transition
   User
   Watch
+  Webhook
 }
