@@ -38,6 +38,7 @@ class JiraBot
   constructor: (@robot) ->
     return new JiraBot @robot unless @ instanceof JiraBot
 
+    @webhook = new Jira.Webhook @robot
     Utils.robot = @robot
     switch @robot.adapterName
       when "slack"
@@ -45,6 +46,7 @@ class JiraBot
       else
         @adapter = new Adapters.Generic @robot
 
+    @registerWebhookListeners()
     @registerEventListeners()
     @registerRobotResponses()
 
@@ -87,6 +89,43 @@ class JiraBot
     .catch (error) =>
       @send msg, "#{error}"
       @robot.logger.error error.stack
+
+  registerWebhookListeners: ->
+    disableDisclaimer = """
+
+      If you wish to stop receiving notifications for tickets you watch, reply with:
+      > jira disable notifications
+    """
+    @robot.on "JiraWebhookTicketInProgress", (ticket) =>
+      assignee = Utils.lookupUserWithJira ticket.fields.assignee
+      assigneeText = "."
+      assigneeText = " by: #{assignee}" if assignee isnt "Unassigned"
+
+      @adapter.dm ticket.watchers,
+        text: """
+          A ticket you are watching is now being worked on#{assigneeText}
+          #{disableDisclaimer}
+        """
+        attachments: [ ticket.toAttachment no ]
+
+    @robot.on "JiraWebhookTicketDone", (ticket) =>
+      @adapter.dm ticket.watchers,
+        text: """
+          A ticket you are watching has been marked `Done`.
+          #{disableDisclaimer}
+        """
+        attachments: [ ticket.toAttachment no ]
+
+    @robot.on "JiraWebhookTicketComment", (ticket, comment) =>
+      @adapter.dm ticket.watchers,
+        text: """
+          A ticket you are watching has a new comment from #{comment.author.displayName}:
+          ```
+          #{comment.body}
+          ```
+          #{disableDisclaimer}
+        """
+        attachments: [ ticket.toAttachment no ]
 
   registerEventListeners: ->
     #Create
@@ -165,6 +204,28 @@ class JiraBot
       [ __, topic] = msg.match
       @send msg, Help.forTopic topic, @robot
 
+    #Enable/Disable Watch Notifications
+    @robot.respond Config.watch.notificationsRegex, (msg) =>
+      [ __, state ] = msg.match
+      switch state
+        when "allow", "start", "enable"
+          @adapter.enableNotificationsFor msg.message.user
+          @send msg, """
+          JIRA Watch notifications have been *enabled*
+
+          You will start receiving notifications for JIRA tickets you watch
+
+          If you wish to _disable_ them just send me this message:
+          `jira disable notifications`
+          """
+        when "disallow", "stop", "disable"
+          @adapter.disableNotificationsFor msg.message.user
+          @send msg, """
+          JIRA Watch notifications have been *disabled*
+
+          If you wish to _enable_ them again just send me this message:
+          `jira enable notifications`
+          """
     #Search
     @robot.respond Config.search.regex, (msg) =>
       [__, query] = msg.match

@@ -3,9 +3,11 @@ _ = require "underscore"
 Config = require "../config"
 Jira = require "../jira"
 Utils = require "../utils"
+GenericAdapter = require "./generic"
 
-class Slack
+class Slack extends GenericAdapter
   constructor: (@robot) ->
+    super @robot
     # Since the slack client used by hubot-slack has not yet been updated
     # to the latest version, we do not get events for reactions.
     # Also there doesn't seem to be a better way to get a reference to

@@ -55,6 +55,7 @@ class Config
     regex: eval "/(?\:^|\\s)((?\:#{Config.projects.prefixes}-)(?\:\\d+)) rank (.*)/i"
 
   @watch:
+    notificationsRegex: /jira (allow|start|enable|disallow|disable|stop)( notifications)?/i
     regex: eval "/(?\:^|\\s)((?\:#{Config.projects.prefixes}-)(?\:\\d+)) (un)?watch(?: @?([\\w._]*))?/i"
 
   @assign:

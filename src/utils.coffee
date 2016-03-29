@@ -48,6 +48,12 @@ class Utils
     else
       return "Unassigned"
 
+  @lookupChatUserWithJira: (jira) ->
+    users = Utils.robot.brain.users()
+    result = (users[user] for user of users when users[user].email_address is jira.emailAddress) if jira
+    return result[0] if result?.length is 1
+    return null
+
   @lookupUserWithGithub: (github) ->
     return if not github
 
@@ -73,7 +79,7 @@ class Utils
     "?#{("#{encodeURIComponent k}=#{encodeURIComponent v}" for k,v of params when v).join "&"}"
 
   @fuzzyFind: (term, arr, keys) ->
-    f = new Fuse arr, keys: keys, shouldSort: yes
+    f = new Fuse arr, keys: keys, shouldSort: yes, threshold: 0.3
     results = f.search term
     result = if results? and results.length >=1 then results[0]
 
