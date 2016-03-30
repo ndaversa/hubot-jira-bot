@@ -14,7 +14,7 @@ class Webhook
 
   statusChangeType: (status) ->
     acceptedTypes = [
-      keywords: "done completed resolved fixed"
+      keywords: "done completed resolved fixed merged"
       name: "JiraWebhookTicketDone"
     ,
       keywords: "progress"
