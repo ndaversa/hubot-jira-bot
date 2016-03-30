@@ -29,7 +29,7 @@ class Slack extends GenericAdapter
         @onReactionRemoved msg
 
   send: (context, message) ->
-    payload = channel: context.message.room + "fail"
+    payload = channel: context.message.room
     if _(message).isString()
       payload.text = message
     else
