@@ -55,7 +55,7 @@ class Utils
     return null
 
   @lookupUserWithGithub: (github) ->
-    return if not github
+    return Promise.resolve() if not github
 
     github.fetch().then (user) ->
       name = user.name or github.login
