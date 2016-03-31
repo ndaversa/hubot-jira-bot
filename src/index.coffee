@@ -91,6 +91,7 @@ class JiraBot
       @robot.logger.error error.stack
 
   registerWebhookListeners: ->
+    # Watchers
     disableDisclaimer = """
 
       If you wish to stop receiving notifications for the tickets you are watching, reply with:
@@ -101,7 +102,7 @@ class JiraBot
       assigneeText = "."
       assigneeText = " by #{assignee}" if assignee isnt "Unassigned"
 
-      @adapter.dm ticket.watchers,
+      @adapter.dm Utils.lookupChatUsersWithJira(ticket.watchers),
         text: """
           A ticket you are watching is now being worked on#{assigneeText}
           #{disableDisclaimer}
@@ -109,7 +110,7 @@ class JiraBot
         attachments: [ ticket.toAttachment no ]
 
     @robot.on "JiraWebhookTicketDone", (ticket) =>
-      @adapter.dm ticket.watchers,
+      @adapter.dm Utils.lookupChatUsersWithJira(ticket.watchers),
         text: """
           A ticket you are watching has been marked `Done`.
           #{disableDisclaimer}
@@ -117,12 +118,21 @@ class JiraBot
         attachments: [ ticket.toAttachment no ]
 
     @robot.on "JiraWebhookTicketComment", (ticket, comment) =>
-      @adapter.dm ticket.watchers,
+      @adapter.dm Utils.lookupChatUsersWithJira(ticket.watchers),
         text: """
           A ticket you are watching has a new comment from #{comment.author.displayName}:
           ```
           #{comment.body}
           ```
+          #{disableDisclaimer}
+        """
+        attachments: [ ticket.toAttachment no ]
+
+    # Mentions
+    @robot.on "JiraWebhookTicketMention", (ticket, user, event) =>
+      @adapter.dm user,
+        text: """
+          You were mentioned in a ticket by #{event.user.displayName}:
           #{disableDisclaimer}
         """
         attachments: [ ticket.toAttachment no ]

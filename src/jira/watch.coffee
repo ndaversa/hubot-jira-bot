@@ -7,10 +7,10 @@ class Watch
     person = if person is "me" or not person then msg.message.user.name else person
 
     key = key.toUpperCase()
-    slackUser = Utils.lookupSlackUser person
+    chatUser = Utils.lookupChatUser person
 
-    if slackUser
-      User.withEmail(slackUser.email_address)
+    if chatUser
+      User.withEmail(chatUser.email_address)
       .then (user) ->
         Utils.fetch "#{Config.jira.url}/rest/api/2/issue/#{key}/watchers#{if remove then "?username=#{user.name}" else ""}",
           method: if remove then "DELETE" else "POST"
@@ -20,14 +20,14 @@ class Watch
         Create.fromKey key
       .then (ticket) ->
         if remove
-          msg.robot.emit "JiraTicketUnwatched", ticket, slackUser, msg.message.room, includeAttachment
+          msg.robot.emit "JiraTicketUnwatched", ticket, chatUser, msg.message.room, includeAttachment
         else
-          msg.robot.emit "JiraTicketWatched", ticket, slackUser, msg.message.room, includeAttachment
+          msg.robot.emit "JiraTicketWatched", ticket, chatUser, msg.message.room, includeAttachment
       .catch (error) ->
         msg.robot.emit "JiraTicketWatchFailed", error, msg.message.room
         Promise.reject error
     else
-      error = "Cannot find slack user `#{person}`"
+      error = "Cannot find chat user `#{person}`"
       msg.robot.emit "JiraTicketWatchFailed", error, msg.message.room
       Promise.reject error
 

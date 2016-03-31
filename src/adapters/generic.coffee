@@ -31,14 +31,13 @@ class GenericAdapter
 
     @robot.send room: context.message.room, payload
 
-  dm: (jiraUsers, message) ->
-    for jiraUser in jiraUsers
-      user = Utils.lookupChatUserWithJira jiraUser
-      if user and not _(@disabledUsers).contains user.id
-        @send message: room: user.name, message
-      else if not user
-        @robot.logger.error "Unable to find chat user from jira #{jira}"
-      else
+  dm: (users, message) ->
+    users = [ users ] unless _(users).isArray()
+    for user in users when user
+      if _(@disabledUsers).contains user.id
         @robot.logger.info "JIRA Notification surpressed for #{user.name}"
+      else
+        console.log "sending message", user.name, message
+        @send message: room: user.name, message
 
 module.exports = GenericAdapter
