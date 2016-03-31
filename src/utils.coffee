@@ -31,7 +31,7 @@ class Utils
       Utils.robot.logger.error error.stack
       throw error
 
-  @lookupSlackUser: (username) ->
+  @lookupChatUser: (username) ->
     users = Utils.robot.brain.users()
     result = (users[user] for user of users when users[user].name is username)
     if result?.length is 1
@@ -47,6 +47,14 @@ class Utils
       return jira.displayName
     else
       return "Unassigned"
+
+  @lookupChatUsersWithJira: (jiraUsers, message) ->
+    jiraUsers = [ jiraUsers ] unless _(jiraUsers).isArray()
+    chatUsers = []
+    for jiraUser in jiraUsers when jiraUser
+      user = Utils.lookupChatUserWithJira jiraUser
+      chatUsers.push user if user
+    return chatUsers
 
   @lookupChatUserWithJira: (jira) ->
     users = Utils.robot.brain.users()

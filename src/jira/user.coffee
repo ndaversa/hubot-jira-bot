@@ -10,4 +10,9 @@ class User
       throw "Cannot find jira user with #{email}" unless jiraUser
       jiraUser
 
+  @withUsername: (username) ->
+    Utils.fetch("#{Config.jira.url}/rest/api/2/user?username=#{username}")
+    .catch (error) ->
+      Utils.robot.logger.error "Cannot find jira user with #{username}"
+
 module.exports = User

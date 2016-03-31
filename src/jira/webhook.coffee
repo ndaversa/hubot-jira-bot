@@ -1,48 +1,99 @@
+_ = require "underscore"
+
+Config = require "../config"
 Utils = require "../utils"
+User = require "./user"
 
 class Webhook
   constructor: (@robot) ->
     @robot.router.post "/hubot/jira-events", (req, res) =>
       return unless req.body?
       event = req.body
-      return unless event.issue.fields.watches.watchCount > 0
+      if event.changelog?
+        @onChangelog event
+      else if event.comment?
+        @onComment event
+      else if event.webhookEvent is "jira:issue_created"
+        @onCreate event
 
-      if event.comment?
-        return @onComment event
-      else if event.changelog?
-        return @onChangelog event
+  onChangelog: (event) ->
+    return unless event.changelog.items?.length > 0
+    for item in event.changelog.items
+      switch item.field
+        when "status"
+          @onStatusChange event, item
+        when "description"
+          @onDescriptionChange event, item
 
-  statusChangeType: (status) ->
-    acceptedTypes = [
+  onComment: (event) ->
+    if Config.mention.regex.test event.comment.body
+      @onAtHandleMention event, event.comment.body.match(Config.mention.regex)[1]
+    if Config.jira.mentionRegex.test event.comment.body
+      @onJiraMention event, event.comment.body.match(Config.jira.mentionRegex)[1]
+    return unless event.issue.fields.watches.watchCount > 0
+    Create = require "./create"
+    Create.fromKey(event.issue.key)
+    .then (ticket) =>
+      @robot.emit "JiraWebhookTicketComment", ticket, event.comment
+
+  onCreate: (event) ->
+    @onDescriptionChange event,
+      toString: event.issue.fields.description or ""
+      fromString: ""
+
+  onJiraMention: (event, username) ->
+    chatUser = null
+    User.withUsername(username)
+    .then (jiraUser) ->
+      chatUser = Utils.lookupChatUserWithJira jiraUser
+      Promise.reject() unless chatUser
+      Create = require "./create"
+      Create.fromKey(event.issue.key)
+    .then (ticket) =>
+      @robot.emit "JiraWebhookTicketMention", ticket, chatUser, event
+
+  onAtHandleMention: (event, handle) ->
+    chatUser = Utils.lookupChatUser handle
+    return unless chatUser
+    Create = require "./create"
+    Create.fromKey(event.issue.key)
+    .then (ticket) =>
+      @robot.emit "JiraWebhookTicketMention", ticket, chatUser, event
+
+  onDescriptionChange: (event, item) ->
+    if Config.mention.regex.test item.toString
+      previousMentions = item.fromString.match Config.mention.regexGlobal
+      latestMentions = item.toString.match Config.mention.regexGlobal
+      newMentions = _(latestMentions).difference previousMentions
+      for mention in newMentions
+        handle = mention.match(Config.mention.regex)[1]
+        @onAtHandleMention event, handle
+
+    if Config.jira.mentionRegex.test item.toString
+      previousMentions = item.fromString.match Config.jira.mentionRegexGlobal
+      latestMentions = item.toString.match Config.jira.mentionRegexGlobal
+      newMentions = _(latestMentions).difference previousMentions
+      for mention in newMentions
+        username = mention.match(Config.jira.mentionRegex)[1]
+        @onJiraMention event, username
+
+  onStatusChange: (event, item) ->
+    return unless event.issue.fields.watches.watchCount > 0
+
+    states = [
       keywords: "done completed resolved fixed merged"
       name: "JiraWebhookTicketDone"
     ,
       keywords: "progress"
       name: "JiraWebhookTicketInProgress"
     ]
-    return Utils.fuzzyFind status, acceptedTypes, ['keywords']
+    status = Utils.fuzzyFind item.toString.toLowerCase(), states, ['keywords']
+    return @robot.logger.info "#{event.issue.key}: Ignoring transition to '#{item.toString}'" unless status
 
-  onChangelog: (event) ->
-    return unless event.changelog.items?.length > 0
-
-    for item in event.changelog.items
-      continue unless item.field is "status"
-      status = @statusChangeType item.toString.toLowerCase()
-      unless status
-        @robot.logger.info "#{event.issue.key}: Ignoring transition to '#{item.toString}'"
-        continue
-
-      Create = require "./create"
-      Create.fromKey(event.issue.key)
-      .then (ticket) =>
-        @robot.logger.info "#{event.issue.key}: Emitting #{status.name} because of the transition to '#{item.toString}'"
-        @robot.emit status.name, ticket
-
-  onComment: (event) ->
     Create = require "./create"
     Create.fromKey(event.issue.key)
     .then (ticket) =>
-      @robot.emit "JiraWebhookTicketComment", ticket, event.comment
-
+      @robot.logger.info "#{event.issue.key}: Emitting #{status.name} because of the transition to '#{item.toString}'"
+      @robot.emit status.name, ticket
 
 module.exports = Webhook

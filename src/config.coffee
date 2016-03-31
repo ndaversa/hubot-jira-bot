@@ -18,6 +18,8 @@ class Config
       password: process.env.HUBOT_JIRA_PASSWORD
       expand: "transitions"
       fields: ["issuetype", "status", "assignee", "reporter", "summary"]
+      mentionRegex: /(?:\[~([\w._]*)\])/i
+      mentionRegexGlobal: /(?:\[~([\w._]*)\])/gi
   @jira.urlRegexBase = "#{Config.jira.url}/browse/".replace /[-\/\\^$*+?.()|[\]{}]/g, '\\$&'
   @jira.urlRegex = eval "/(?:#{Config.jira.urlRegexBase})((?:#{Config.projects.prefixes}-)\\d+)\\s*/i"
   @jira.urlRegexGlobal = eval "/(?:#{Config.jira.urlRegexBase})((?:#{Config.projects.prefixes}-)\\d+)\\s*/gi"
@@ -49,7 +51,8 @@ class Config
     regex: /`{1,3}([^]*?)`{1,3}/
 
   @mention:
-    regex: eval "/(?:@([\\w._]*))/i"
+    regex: /(?:@([\w._]*))/i
+    regexGlobal: /(?:@([\w._]*))/gi
 
   @rank:
     regex: eval "/(?\:^|\\s)((?\:#{Config.projects.prefixes}-)(?\:\\d+)) rank (.*)/i"
