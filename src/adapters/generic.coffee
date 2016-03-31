@@ -37,7 +37,6 @@ class GenericAdapter
       if _(@disabledUsers).contains user.id
         @robot.logger.info "JIRA Notification surpressed for #{user.name}"
       else
-        console.log "sending message", user.name, message
         @send message: room: user.name, message
 
 module.exports = GenericAdapter
