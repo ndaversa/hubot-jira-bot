@@ -24,11 +24,13 @@ class Utils
         error.response = response
         throw error
     .then (response) ->
-      response.json() if response.status isnt 204
+      length = response.headers.get 'content-length'
+      response.json() unless length is "0" or length is 0
     .catch (error) ->
-      response.json().then (json) ->
-        Utils.robot.logger JSON.stringify json
-      Utils.robot.logger.error error.stack
+      try
+        Utils.robot.logger.error error.stack
+        error.response.json().then (json) ->
+          Utils.robot.logger.error JSON.stringify json
       throw error
 
   @lookupChatUser: (username) ->
@@ -86,8 +88,8 @@ class Utils
   @buildQueryString: (params) ->
     "?#{("#{encodeURIComponent k}=#{encodeURIComponent v}" for k,v of params when v).join "&"}"
 
-  @fuzzyFind: (term, arr, keys) ->
-    f = new Fuse arr, keys: keys, shouldSort: yes, threshold: 0.3
+  @fuzzyFind: (term, arr, keys, opts) ->
+    f = new Fuse arr, _(keys: keys, shouldSort: yes, threshold: 0.3).extend opts
     results = f.search term
     result = if results? and results.length >=1 then results[0]
 

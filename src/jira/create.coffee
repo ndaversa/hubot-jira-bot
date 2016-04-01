@@ -8,8 +8,12 @@ User = require "./user"
 Utils = require "../utils"
 
 class Create
-  @with: (project, type, summary, msg) ->
+  @fromJSON: (json) ->
+    Utils.fetch "#{Config.jira.url}/rest/api/2/issue",
+      method: "POST"
+      body: JSON.stringify json
 
+  @with: (project, type, summary, msg) ->
     if Config.maps.transitions
       if Config.transitions.shouldRegex.test(summary)
         [ __, toState] =  summary.match Config.transitions.shouldRegex
@@ -50,11 +54,7 @@ class Create
 
       issue.fields.reporter = reporter if reporter
       issue.fields.priority = id: priority.id if priority
-      issue
-    .then (issue) ->
-      Utils.fetch "#{Config.jira.url}/rest/api/2/issue",
-        method: "POST"
-        body: JSON.stringify issue
+      Create.fromJSON issue
     .then (json) ->
       Create.fromKey(json.key)
       .then (ticket) ->
@@ -76,6 +76,7 @@ class Create
     params =
       expand: Config.jira.expand
       fields: Config.jira.fields
+
     Utils.fetch("#{Config.jira.url}/rest/api/2/issue/#{key}#{Utils.buildQueryString params}")
     .then (json) ->
       Promise.all [
