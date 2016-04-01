@@ -35,6 +35,15 @@ class Help
                 #{(_(Config.maps.priorities).map (p) -> "`!#{p.name.toLowerCase()}`").join ',  '}
     """
 
+    subtask = """
+    *Creating Sub-tasks*
+    > #{robot.name} subtask `<ticket>` `<summary>`
+
+    Where `<ticket>` is the parent JIRA ticket number
+    and `<summary>` is a short summary of the task
+    """
+
+
     clone = """
     *Cloning Tickets*
     > `<ticket>` clones to `<channel>`
@@ -114,8 +123,8 @@ class Help
     Where `<term>` is some text contained in the ticket you are looking for
     """
 
-    if _(["report", "open", "file", _(Config.maps.types).keys()]).chain().flatten().contains(topic).value()
-      responses = [ opening ]
+    if _(["report", "open", "file", "subtask", _(Config.maps.types).keys()]).chain().flatten().contains(topic).value()
+      responses = [ opening, subtask ]
     else if _(["clone", "duplicate", "copy"]).contains topic
       responses = [ clone ]
     else if _(["rank", "ranking"]).contains topic
@@ -131,7 +140,7 @@ class Help
     else if _(["watch", "watching", "notifications", "notify"]).contains topic
       responses = [ watch, notifications ]
     else
-      responses = [ overview, opening, clone, rank, comment, assignment, transition, watch, notifications, search ]
+      responses = [ overview, opening, subtask, clone, rank, comment, assignment, transition, watch, notifications, search ]
 
     return "\n#{responses.join '\n\n\n'}"
 

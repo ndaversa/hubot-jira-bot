@@ -309,6 +309,12 @@ class JiraBot
       [ __, key, comment ] = msg.match
       Jira.Comment.forTicketKeyWith key, comment, msg, yes
 
+    #Subtask
+    @robot.respond Config.subtask.regex, (msg) =>
+      msg.finish()
+      [ __, key, summary ] = msg.match
+      Jira.Create.subtaskFromKeyWith key, summary, msg
+
     #Create
     @robot.respond Config.commands.regex, (msg) =>
       [ __, command, summary ] = msg.match

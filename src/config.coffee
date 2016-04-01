@@ -18,7 +18,7 @@ class Config
       username: process.env.HUBOT_JIRA_USERNAME
       password: process.env.HUBOT_JIRA_PASSWORD
       expand: "transitions"
-      fields: ["issuetype", "status", "assignee", "reporter", "summary", "description", "labels"]
+      fields: ["issuetype", "status", "assignee", "reporter", "summary", "description", "labels", "project"]
       mentionRegex: /(?:\[~([\w._]*)\])/i
       mentionRegexGlobal: /(?:\[~([\w._]*)\])/gi
   @jira.urlRegexBase = "#{Config.jira.url}/browse/".replace /[-\/\\^$*+?.()|[\]{}]/g, '\\$&'
@@ -41,7 +41,7 @@ class Config
 
   @transitions:
     if Config.maps.transitions
-      regex: eval "/(?\:^|\\s)((?\:#{Config.projects.prefixes}-)(?\:\\d+))\\s+(?\:to\\s+|>\\s?)(#{(Config.maps.transitions.map (t) -> t.name).join "|"})/i"
+      regex: eval "/(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s+(?:to\\s+|>\\s?)(#{(Config.maps.transitions.map (t) -> t.name).join "|"})/i"
       shouldRegex: eval "/\\s+>\\s?(#{(Config.maps.transitions.map (t) -> t.name).join "|"})/i"
 
   @priority:
@@ -56,20 +56,23 @@ class Config
     regexGlobal: /(?:@([\w._]*))/gi
 
   @rank:
-    regex: eval "/(?\:^|\\s)((?\:#{Config.projects.prefixes}-)(?\:\\d+)) rank (.*)/i"
+    regex: eval "/(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+)) rank (.*)/i"
 
   @watch:
     notificationsRegex: /jira (allow|start|enable|disallow|disable|stop)( notifications)?/i
-    regex: eval "/(?\:^|\\s)((?\:#{Config.projects.prefixes}-)(?\:\\d+)) (un)?watch(?: @?([\\w._]*))?/i"
+    regex: eval "/(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+)) (un)?watch(?: @?([\\w._]*))?/i"
+
+  @subtask:
+    regex: eval "/subtask\\s+((?:#{Config.projects.prefixes}-)(?:\\d+)) ([^]+)/i"
 
   @assign:
-    regex: eval "/(?\:^|\\s)((?\:#{Config.projects.prefixes}-)(?\:\\d+)) (un)?assign @?([\\w._]*)/i"
+    regex: eval "/(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+)) (un)?assign @?([\\w._]*)/i"
 
   @clone:
-    regex: eval "/(?\:^|\\s)((?\:#{Config.projects.prefixes}-)(?\:\\d+))\\s*(?:(?:>|clone(?:\\s+to)?)\\s*)#(#{Config.projects.channels})/i"
+    regex: eval "/(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s*(?:(?:>|clone(?:\\s+to)?)\\s*)#(#{Config.projects.channels})/i"
 
   @comment:
-    regex: eval "/(?\:^|\\s)((?\:#{Config.projects.prefixes}-)(?\:\\d+))\\s?(?\:<\\s?)([^]+)/i"
+    regex: eval "/(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s?(?:<\\s?)([^]+)/i"
 
   @labels:
     regex: /(?:\s+|^)#\S+/g
@@ -78,6 +81,6 @@ class Config
     regex: /(?:j|jira) (?:s|search|find|query) (.+)/
 
   @help:
-    regex:/(?:help jira|jira help)(?: (.*))?/
+    regex: /(?:help jira|jira help)(?: (.*))?/
 
 module.exports = Config

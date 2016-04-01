@@ -40,8 +40,7 @@ class Create
 
       issue =
         fields:
-          project:
-            key: project
+          project: key: project
           summary: summary
           labels: labels
           description: """
@@ -49,8 +48,7 @@ class Create
             Reported by #{msg.message.user.name} in ##{msg.message.room} on #{msg.robot.adapterName}
             https://#{msg.robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}
           """
-          issuetype:
-            name: type
+          issuetype: name: type
 
       issue.fields.reporter = reporter if reporter
       issue.fields.priority = id: priority.id if priority
@@ -85,5 +83,31 @@ class Create
       ]
     .then (jsons) ->
       new Ticket _(jsons[0]).extend _(jsons[1]).pick("watchers")
+
+  @subtaskFromKeyWith: (key, summary, msg) ->
+    Create.fromKey(key)
+    .then (ticket) ->
+      Create.fromJSON
+        fields:
+          parent: key: key
+          project: key: ticket.fields.project.key
+          summary: summary
+          labels: ticket.labels
+          description: """
+            Sub-task of #{key} created by #{msg.message.user.name} in ##{msg.message.room} on #{msg.robot.adapterName}
+            https://#{msg.robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}
+          """
+          issuetype:
+            name: "Sub-task"
+    .then (json) ->
+      Create.fromKey(json.key)
+      .then (ticket) ->
+        Utils.robot.emit "JiraTicketCreated", ticket, msg.message.room
+        ticket
+    .catch (error) ->
+      Utils.robot.logger.error error.stack
+      Utils.robot.emit "JiraTicketCreationFailed", error, msg.message.room
+      Promise.reject error
+
 
 module.exports = Create
