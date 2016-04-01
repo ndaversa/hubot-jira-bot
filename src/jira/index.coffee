@@ -1,4 +1,5 @@
 Assign = require "./assign"
+Clone = require "./clone"
 Comment = require "./comment"
 Create = require "./create"
 Rank = require "./rank"
@@ -11,6 +12,7 @@ Webhook = require "./webhook"
 
 module.exports = {
   Assign
+  Clone
   Comment
   Create
   Rank

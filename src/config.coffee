@@ -11,13 +11,14 @@ class Config
 
   @projects:
     prefixes: (key for team, key of Config.maps.projects).reduce (x,y) -> x + "-|" + y
+    channels: (team for team, key of Config.maps.projects).reduce (x,y) -> x + "|" + y
 
   @jira:
       url: process.env.HUBOT_JIRA_URL
       username: process.env.HUBOT_JIRA_USERNAME
       password: process.env.HUBOT_JIRA_PASSWORD
       expand: "transitions"
-      fields: ["issuetype", "status", "assignee", "reporter", "summary"]
+      fields: ["issuetype", "status", "assignee", "reporter", "summary", "description", "labels"]
       mentionRegex: /(?:\[~([\w._]*)\])/i
       mentionRegexGlobal: /(?:\[~([\w._]*)\])/gi
   @jira.urlRegexBase = "#{Config.jira.url}/browse/".replace /[-\/\\^$*+?.()|[\]{}]/g, '\\$&'
@@ -63,6 +64,9 @@ class Config
 
   @assign:
     regex: eval "/(?\:^|\\s)((?\:#{Config.projects.prefixes}-)(?\:\\d+)) (un)?assign @?([\\w._]*)/i"
+
+  @clone:
+    regex: eval "/(?\:^|\\s)((?\:#{Config.projects.prefixes}-)(?\:\\d+))\\s*(?:(?:>|clone(?:\\s+to)?)\\s*)#(#{Config.projects.channels})/i"
 
   @comment:
     regex: eval "/(?\:^|\\s)((?\:#{Config.projects.prefixes}-)(?\:\\d+))\\s?(?\:<\\s?)([^]+)/i"

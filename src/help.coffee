@@ -35,6 +35,15 @@ class Help
                 #{(_(Config.maps.priorities).map (p) -> "`!#{p.name.toLowerCase()}`").join ',  '}
     """
 
+    clone = """
+    *Cloning Tickets*
+    > `<ticket>` clones to `<channel>`
+    > `<ticket>` > `<channel>`
+
+    Where `<ticket>` is the JIRA ticket number
+    and `<channel>` is one of the following: #{(_(Config.maps.projects).keys().map (c) -> "`##{c}`").join ',  '}
+    """
+
     rank = """
     *Ranking Tickets*
     > `<ticket>` rank top
@@ -107,6 +116,8 @@ class Help
 
     if _(["report", "open", "file", _(Config.maps.types).keys()]).chain().flatten().contains(topic).value()
       responses = [ opening ]
+    else if _(["clone", "duplicate", "copy"]).contains topic
+      responses = [ clone ]
     else if _(["rank", "ranking"]).contains topic
       responses = [ rank ]
     else if _(["comment", "comments"]).contains topic
@@ -120,7 +131,7 @@ class Help
     else if _(["watch", "watching", "notifications", "notify"]).contains topic
       responses = [ watch, notifications ]
     else
-      responses = [ overview, opening, rank, comment, assignment, transition, watch, notifications, search ]
+      responses = [ overview, opening, clone, rank, comment, assignment, transition, watch, notifications, search ]
 
     return "\n#{responses.join '\n\n\n'}"
 

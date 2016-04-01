@@ -148,6 +148,18 @@ class JiraBot
       robot.logger.error error.stack
       @send message: room: room, "Unable to create ticket #{error}"
 
+    #Clone
+    @robot.on "JiraTicketCloned", (ticket, room, clone, msg) =>
+      channel = @robot.adapter.client.getChannelGroupOrDMByName msg.message.room
+      @send message: room: room,
+        text: "Ticket created: Cloned from #{clone} in <##{channel.id}|#{channel.name}> by <@#{msg.message.user.id}>"
+        attachments: [ ticket.toAttachment no ]
+
+    @robot.on "JiraTicketCloneFailed", (error, ticket, room) =>
+      robot.logger.error error.stack
+      channel = @robot.adapter.client.getChannelGroupOrDMByName room
+      @send message: room: room, "Unable to clone `#{ticket}` to the <\##{channel.id}|#{channel.name}> project :sadpanda:\n```#{error}```"
+
     #Transition
     @robot.on "JiraTicketTransitioned", (ticket, transition, room, includeAttachment=no) =>
       @send message: room: room,
@@ -259,6 +271,13 @@ class JiraBot
         [ __, key, toState ] = msg.match
         msg.finish()
         Jira.Transition.forTicketKeyToState key, toState, msg, yes
+
+    #Clone
+    @robot.hear Config.clone.regex, (msg) =>
+      msg.finish()
+      [ __, ticket, channel ] = msg.match
+      project = Config.maps.projects[channel]
+      Jira.Clone.fromTicketKeyToProject ticket, project, channel, msg
 
     #Assign
     @robot.hear Config.assign.regex, (msg) =>
