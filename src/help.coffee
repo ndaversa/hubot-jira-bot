@@ -46,7 +46,7 @@ class Help
 
     clone = """
     *Cloning Tickets*
-    > `<ticket>` clones to `<channel>`
+    > `<ticket>` clone to `<channel>`
     > `<ticket>` > `<channel>`
 
     Where `<ticket>` is the JIRA ticket number
