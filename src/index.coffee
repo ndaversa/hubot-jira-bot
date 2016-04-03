@@ -93,7 +93,6 @@ class JiraBot
   registerWebhookListeners: ->
     # Watchers
     disableDisclaimer = """
-
       If you wish to stop receiving notifications for the tickets you are watching, reply with:
       > jira disable notifications
     """
@@ -105,16 +104,16 @@ class JiraBot
       @adapter.dm Utils.lookupChatUsersWithJira(ticket.watchers),
         text: """
           A ticket you are watching is now being worked on#{assigneeText}
-          #{disableDisclaimer}
         """
+        footer: disableDisclaimer
         attachments: [ ticket.toAttachment no ]
 
     @robot.on "JiraWebhookTicketDone", (ticket) =>
       @adapter.dm Utils.lookupChatUsersWithJira(ticket.watchers),
         text: """
           A ticket you are watching has been marked `Done`.
-          #{disableDisclaimer}
         """
+        footer: disableDisclaimer
         attachments: [ ticket.toAttachment no ]
 
     @robot.on "JiraWebhookTicketComment", (ticket, comment) =>
@@ -124,8 +123,8 @@ class JiraBot
           ```
           #{comment.body}
           ```
-          #{disableDisclaimer}
         """
+        footer: disableDisclaimer
         attachments: [ ticket.toAttachment no ]
 
     # Mentions
@@ -133,8 +132,8 @@ class JiraBot
       @adapter.dm user,
         text: """
           You were mentioned in a ticket by #{event.user.displayName}:
-          #{disableDisclaimer}
         """
+        footer: disableDisclaimer
         attachments: [ ticket.toAttachment no ]
 
   registerEventListeners: ->
