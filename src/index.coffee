@@ -229,11 +229,13 @@ class JiraBot
   registerRobotResponses: ->
     #Help
     @robot.respond Config.help.regex, (msg) =>
+      msg.finish()
       [ __, topic] = msg.match
       @send msg, Help.forTopic topic, @robot
 
     #Enable/Disable Watch Notifications
     @robot.respond Config.watch.notificationsRegex, (msg) =>
+      msg.finish()
       [ __, state ] = msg.match
       switch state
         when "allow", "start", "enable"
@@ -258,6 +260,7 @@ class JiraBot
           """
     #Search
     @robot.respond Config.search.regex, (msg) =>
+      msg.finish()
       [__, query] = msg.match
       room = msg.message.room
       project = Config.maps.projects[room]
@@ -275,7 +278,6 @@ class JiraBot
     if Config.maps.transitions
       @robot.hear Config.transitions.regex, (msg) =>
         [ __, key, toState ] = msg.match
-        msg.finish()
         Jira.Transition.forTicketKeyToState key, toState, msg, yes
 
     #Clone
@@ -285,19 +287,10 @@ class JiraBot
       project = Config.maps.projects[channel]
       Jira.Clone.fromTicketKeyToProject ticket, project, channel, msg
 
-    #Assign
-    @robot.hear Config.assign.regex, (msg) =>
-      [ __, key, remove, person ] = msg.match
-      msg.finish()
-      if remove
-        Jira.Assign.forTicketKeyToUnassigned key, msg, yes
-      else
-        Jira.Assign.forTicketKeyToPerson key, person, msg, yes
-
     #Watch
     @robot.hear Config.watch.regex, (msg) =>
-      [ __, key, remove, person ] = msg.match
       msg.finish()
+      [ __, key, remove, person ] = msg.match
       if remove
         Jira.Watch.forTicketKeyRemovePerson key, person, msg, yes
       else
@@ -320,6 +313,15 @@ class JiraBot
       msg.finish()
       [ __, key, summary ] = msg.match
       Jira.Create.subtaskFromKeyWith key, summary, msg
+
+    #Assign
+    @robot.hear Config.assign.regex, (msg) =>
+      msg.finish()
+      [ __, key, remove, person ] = msg.match
+      if remove
+        Jira.Assign.forTicketKeyToUnassigned key, msg, yes
+      else
+        Jira.Assign.forTicketKeyToPerson key, person, msg, yes
 
     #Create
     @robot.respond Config.commands.regex, (msg) =>

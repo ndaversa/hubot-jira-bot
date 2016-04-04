@@ -52,8 +52,8 @@ class Config
     regex: /`{1,3}([^]*?)`{1,3}/
 
   @mention:
-    regex: /(?:@([\w._]*))/i
-    regexGlobal: /(?:@([\w._]*))/gi
+    regex: /(?:(?:^|\s+)@([\w._]*))/i
+    regexGlobal: /(?:(?:^|\s+)@([\w._]*))/gi
 
   @rank:
     regex: eval "/(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+)) rank (.*)/i"
