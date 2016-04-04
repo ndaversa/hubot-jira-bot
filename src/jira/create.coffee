@@ -13,7 +13,7 @@ class Create
       method: "POST"
       body: JSON.stringify json
 
-  @with: (project, type, summary, msg) ->
+  @with: (project, type, summary, msg, fields) ->
     if Config.maps.transitions
       if Config.transitions.shouldRegex.test(summary)
         [ __, toState] =  summary.match Config.transitions.shouldRegex
@@ -43,13 +43,15 @@ class Create
           project: key: project
           summary: summary
           labels: labels
-          description: """
-            #{(if description then description + "\n\n" else "")}
-            Reported by #{msg.message.user.name} in ##{msg.message.room} on #{msg.robot.adapterName}
-            https://#{msg.robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}
-          """
+          description: ""
           issuetype: name: type
 
+      _(issue.fields).extend fields if fields
+      issue.fields.description += """
+        #{(if description then description + "\n\n" else "")}
+        Reported by #{msg.message.user.name} in ##{msg.message.room} on #{msg.robot.adapterName}
+        https://#{msg.robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}
+      """
       issue.fields.reporter = reporter if reporter
       issue.fields.priority = id: priority.id if priority
       Create.fromJSON issue
@@ -86,28 +88,9 @@ class Create
 
   @subtaskFromKeyWith: (key, summary, msg) ->
     Create.fromKey(key)
-    .then (ticket) ->
-      Create.fromJSON
-        fields:
-          parent: key: key
-          project: key: ticket.fields.project.key
-          summary: summary
-          labels: ticket.labels
-          description: """
-            Sub-task of #{key} created by #{msg.message.user.name} in ##{msg.message.room} on #{msg.robot.adapterName}
-            https://#{msg.robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}
-          """
-          issuetype:
-            name: "Sub-task"
-    .then (json) ->
-      Create.fromKey(json.key)
-      .then (ticket) ->
-        Utils.robot.emit "JiraTicketCreated", ticket, msg.message.room
-        ticket
-    .catch (error) ->
-      Utils.robot.logger.error error.stack
-      Utils.robot.emit "JiraTicketCreationFailed", error, msg.message.room
-      Promise.reject error
-
+    .then (parent) ->
+      Create.with parent.fields.project.key, "Sub-task", summary, msg,
+        parent: key: parent.key
+        description: "Sub-task of #{key}\n\n"
 
 module.exports = Create
