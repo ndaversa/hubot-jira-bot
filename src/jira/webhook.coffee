@@ -27,9 +27,9 @@ class Webhook
 
   onComment: (event) ->
     if Config.mention.regex.test event.comment.body
-      @onAtHandleMention event, event.comment.body.match(Config.mention.regex)[1]
+      @onAtHandleMention event, event.comment.body.match(Config.mention.regex)[1], event.comment.body
     if Config.jira.mentionRegex.test event.comment.body
-      @onJiraMention event, event.comment.body.match(Config.jira.mentionRegex)[1]
+      @onJiraMention event, event.comment.body.match(Config.jira.mentionRegex)[1], event.comment.body
     return unless event.issue.fields.watches.watchCount > 0
     Create = require "./create"
     Create.fromKey(event.issue.key)
@@ -41,7 +41,7 @@ class Webhook
       toString: event.issue.fields.description or ""
       fromString: ""
 
-  onJiraMention: (event, username) ->
+  onJiraMention: (event, username, context) ->
     chatUser = null
     User.withUsername(username)
     .then (jiraUser) ->
@@ -50,15 +50,15 @@ class Webhook
       Create = require "./create"
       Create.fromKey(event.issue.key)
     .then (ticket) =>
-      @robot.emit "JiraWebhookTicketMention", ticket, chatUser, event
+      @robot.emit "JiraWebhookTicketMention", ticket, chatUser, event, context
 
-  onAtHandleMention: (event, handle) ->
+  onAtHandleMention: (event, handle, context) ->
     chatUser = Utils.lookupChatUser handle
     return unless chatUser
     Create = require "./create"
     Create.fromKey(event.issue.key)
     .then (ticket) =>
-      @robot.emit "JiraWebhookTicketMention", ticket, chatUser, event
+      @robot.emit "JiraWebhookTicketMention", ticket, chatUser, event, context
 
   onDescriptionChange: (event, item) ->
     if Config.mention.regex.test item.toString
@@ -67,7 +67,7 @@ class Webhook
       newMentions = _(latestMentions).difference previousMentions
       for mention in newMentions
         handle = mention.match(Config.mention.regex)[1]
-        @onAtHandleMention event, handle
+        @onAtHandleMention event, handle, item.toString
 
     if Config.jira.mentionRegex.test item.toString
       previousMentions = item.fromString.match Config.jira.mentionRegexGlobal
@@ -75,7 +75,7 @@ class Webhook
       newMentions = _(latestMentions).difference previousMentions
       for mention in newMentions
         username = mention.match(Config.jira.mentionRegex)[1]
-        @onJiraMention event, username
+        @onJiraMention event, username, item.toString
 
   onStatusChange: (event, item) ->
     return unless event.issue.fields.watches.watchCount > 0
@@ -94,6 +94,6 @@ class Webhook
     Create.fromKey(event.issue.key)
     .then (ticket) =>
       @robot.logger.info "#{event.issue.key}: Emitting #{status.name} because of the transition to '#{item.toString}'"
-      @robot.emit status.name, ticket
+      @robot.emit status.name, ticket, event
 
 module.exports = Webhook
