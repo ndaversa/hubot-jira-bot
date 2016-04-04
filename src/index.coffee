@@ -96,7 +96,7 @@ class JiraBot
       If you wish to stop receiving notifications for the tickets you are watching, reply with:
       > jira disable notifications
     """
-    @robot.on "JiraWebhookTicketInProgress", (ticket) =>
+    @robot.on "JiraWebhookTicketInProgress", (ticket, event) =>
       assignee = Utils.lookupUserWithJira ticket.fields.assignee
       assigneeText = "."
       assigneeText = " by #{assignee}" if assignee isnt "Unassigned"
@@ -105,14 +105,16 @@ class JiraBot
         text: """
           A ticket you are watching is now being worked on#{assigneeText}
         """
+        author: event.user
         footer: disableDisclaimer
         attachments: [ ticket.toAttachment no ]
 
-    @robot.on "JiraWebhookTicketDone", (ticket) =>
+    @robot.on "JiraWebhookTicketDone", (ticket, event) =>
       @adapter.dm Utils.lookupChatUsersWithJira(ticket.watchers),
         text: """
           A ticket you are watching has been marked `Done`.
         """
+        author: event.user
         footer: disableDisclaimer
         attachments: [ ticket.toAttachment no ]
 
@@ -124,15 +126,20 @@ class JiraBot
           #{comment.body}
           ```
         """
+        author: comment.author
         footer: disableDisclaimer
         attachments: [ ticket.toAttachment no ]
 
     # Mentions
-    @robot.on "JiraWebhookTicketMention", (ticket, user, event) =>
+    @robot.on "JiraWebhookTicketMention", (ticket, user, event, context) =>
       @adapter.dm user,
         text: """
           You were mentioned in a ticket by #{event.user.displayName}:
+          ```
+          #{context}
+          ```
         """
+        author: event.user
         footer: disableDisclaimer
         attachments: [ ticket.toAttachment no ]
 
