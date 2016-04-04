@@ -66,7 +66,7 @@ class Config
     regex: eval "/subtask\\s+((?:#{Config.projects.prefixes}-)(?:\\d+)) ([^]+)/i"
 
   @assign:
-    regex: eval "/(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))(?: (un)?assign)? @?([\\w._]*)/i"
+    regex: eval "/(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))(?: (un)?assign)? @?([\\w._]*)\\s*$/i"
 
   @clone:
     regex: eval "/(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s*(?:(?:>|clone(?:s)?(?:\\s+to)?)\\s*)#(#{Config.projects.channels})/i"

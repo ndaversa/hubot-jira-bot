@@ -27,11 +27,16 @@ class Utils
       length = response.headers.get 'content-length'
       response.json() unless length is "0" or length is 0
     .catch (error) ->
+      Utils.robot.logger.error error
+      Utils.robot.logger.error error.stack
       try
-        Utils.robot.logger.error error.stack
         error.response.json().then (json) ->
           Utils.robot.logger.error JSON.stringify json
-      throw error
+          message = "\n`#{error}`"
+          message += "\n`#{v}`" for k,v of json.errors
+          throw message
+      catch e
+        throw error
 
   @lookupChatUser: (username) ->
     users = Utils.robot.brain.users()
