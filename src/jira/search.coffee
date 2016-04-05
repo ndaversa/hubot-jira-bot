@@ -10,17 +10,19 @@ class Search
       labels = (query.match(Config.labels.regex).map((label) -> label.replace('#', '').trim())).concat(labels)
       query = query.replace Config.labels.regex, ""
 
-    jql = "text ~ \"#{query}\""
+    jql = if query.length > 0 then "text ~ \"#{query}\"" else ""
     noResults = "No results for #{query}"
     found = "Found __xx__ issues containing `#{query}`"
 
     if project
-      jql += " and project = #{project}"
+      jql += " and " if jql.length > 0
+      jql += "project = #{project}"
       noResults += " in project `#{project}`"
       found += " in project `#{project}`"
 
     if labels.length > 0
-      jql += " and labels = #{label}" for label in labels
+      jql += " and " if jql.length > 0
+      jql += "labels = #{label}" for label in labels
       noResults += " with labels `#{labels.join ', '}`"
       found += " with labels `#{labels.join ', '}`"
 
