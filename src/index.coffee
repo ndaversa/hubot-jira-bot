@@ -277,6 +277,7 @@ class JiraBot
     #Transition
     if Config.maps.transitions
       @robot.hear Config.transitions.regex, (msg) =>
+        msg.finish()
         [ __, key, toState ] = msg.match
         Jira.Transition.forTicketKeyToState key, toState, msg, yes
 
