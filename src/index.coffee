@@ -147,7 +147,7 @@ class JiraBot
     #Create
     @robot.on "JiraTicketCreated", (ticket, room) =>
       @send message: room: room,
-        text: Config.ticket.CREATED_TEXT
+        text: "Ticket created"
         attachments: [ ticket.toAttachment no ]
 
     @robot.on "JiraTicketCreationFailed", (error, room) =>

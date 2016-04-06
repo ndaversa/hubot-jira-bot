@@ -33,7 +33,6 @@ class Config
 
   @ticket:
     regex: eval "/(^|\\s)(" + Config.projects.prefixes + "-)(\\d+)\\b/gi"
-    CREATED_TEXT: "Ticket created"
 
   commands = (command for command, type of Config.maps.types).reduce (x,y) -> x + "|" + y
   @commands:

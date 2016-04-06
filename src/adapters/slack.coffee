@@ -15,18 +15,26 @@ class Slack extends GenericAdapter
     #
     # This processes all messages from Slack and emits events for the three
     # things we care about
-    #   1. When we get our Ticket Created message
+    #   1. When we get a message with a Jira attachment
     #        - so we can add our default bot reactions to it
     #   2. When a reaction is added by someone
     #   3. When a reaction is removed by someone
     @robot.adapter.client.on "raw_message", (msg) =>
-      @onJiraTicketCreationMessage msg if msg.type is "message" and msg.user is @robot.adapter.self.id and msg.text is Config.ticket.CREATED_TEXT
+      @onJiraTicketMessageAttachment msg if @hasJiraAttachment msg
       return unless msg.item_user is @robot.adapter.self.id
       return unless msg.user isnt @robot.adapter.self.id
       if msg.type is "reaction_added"
         @onReactionAdded msg
       else if msg.type is "reaction_removed"
         @onReactionRemoved msg
+
+  hasJiraAttachment: (msg) ->
+    return no unless msg.type is "message"
+    return no unless msg.user is @robot.adapter.self.id
+    return no unless msg.attachments?.length is 1
+    attachment = msg.attachments[0]
+    return no unless attachment.title_link?.length > 0
+    return Config.jira.urlRegex.test attachment.title_link
 
   send: (context, message) ->
     payload = channel: context.message.room
@@ -45,7 +53,7 @@ class Slack extends GenericAdapter
       text += "\n#{a.fallback}" for a in payload.attachments
       @robot.adapter.send context.message, text
 
-  onJiraTicketCreationMessage: (msg) =>
+  onJiraTicketMessageAttachment: (msg) =>
     reactions = ["point_up_2", "point_down", "eyes", "raising_hand", "soon", "fast_forward"]
     dispatchNextReaction = ->
       reaction = reactions.shift()
