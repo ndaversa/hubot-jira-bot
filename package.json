@@ -1,7 +1,7 @@
 {
   "name": "hubot-jira-bot",
   "description": "A hubot script to create JIRA tickets and listen for ticket mentions",
-  "version": "5.5.9",
+  "version": "5.5.10",
   "authors": [
     "Nino D'Aversa <nino@ndaversa.com>"
   ],
