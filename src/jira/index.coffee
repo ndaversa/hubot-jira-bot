@@ -2,6 +2,7 @@ Assign = require "./assign"
 Clone = require "./clone"
 Comment = require "./comment"
 Create = require "./create"
+Labels = require "./labels"
 Rank = require "./rank"
 Search = require "./search"
 Ticket = require "./ticket"
@@ -15,6 +16,7 @@ module.exports = {
   Clone
   Comment
   Create
+  Labels
   Rank
   Search
   Ticket

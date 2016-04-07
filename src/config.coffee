@@ -74,6 +74,7 @@ class Config
     regex: eval "/(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s?(?:<\\s?)([^]+)/i"
 
   @labels:
+    addRegex: eval "/(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s?<(\\s*#\\S+)+$/i"
     regex: /(?:\s+|^)#\S+/g
 
   @search:

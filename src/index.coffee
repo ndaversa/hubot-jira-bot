@@ -216,6 +216,16 @@ class JiraBot
       @robot.logger.error error.stack
       @send message: room: room, "#{error}"
 
+    #Labels
+    @robot.on "JiraTicketLabelled", (ticket, room, includeAttachment=no) =>
+      @send message: room: room,
+        text: "Added labels to #{ticket.key}"
+        attachments: [ ticket.toAttachment no ] if includeAttachment
+
+    @robot.on "JiraTicketLabelFailed", (error, room) =>
+      @robot.logger.error error.stack
+      @send message: room: room, "#{error}"
+
     #Comments
     @robot.on "JiraTicketCommented", (ticket, room, includeAttachment=no) =>
       @send message: room: room,
@@ -302,6 +312,15 @@ class JiraBot
       msg.finish()
       [ __, key, direction ] = msg.match
       Jira.Rank.forTicketKeyByDirection key, direction, msg, yes
+
+    #Labels
+    @robot.hear Config.labels.addRegex, (msg) =>
+      msg.finish()
+      [ __, key ] = msg.match
+      {input: input} = msg.match
+      labels = []
+      labels = (input.match(Config.labels.regex).map((label) -> label.replace('#', '').trim())).concat(labels)
+      Jira.Labels.forTicketKeyWith key, labels, msg, yes
 
     #Comment
     @robot.hear Config.comment.regex, (msg) =>

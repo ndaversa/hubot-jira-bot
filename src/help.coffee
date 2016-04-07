@@ -62,6 +62,14 @@ class Help
     of column for the current state
     """
 
+    labels = """
+    *Adding labels to a Ticket*
+    > `<ticket>` < `#label1 #label2 #label3`
+
+    Where `<ticket>` is the JIRA ticket number
+    """
+
+
     comment = """
     *Commenting on a Ticket*
     > `<ticket>` < `<comment>`
@@ -131,6 +139,8 @@ class Help
       responses = [ rank ]
     else if _(["comment", "comments"]).contains topic
       responses = [ comment ]
+    else if _(["labels", "label"]).contains topic
+      responses = [ labels ]
     else if _(["assign", "assignment"]).contains topic
       responses = [ assignment ]
     else if _(["transition", "transitions", "state", "move"]).contains topic
@@ -140,7 +150,7 @@ class Help
     else if _(["watch", "watching", "notifications", "notify"]).contains topic
       responses = [ watch, notifications ]
     else
-      responses = [ overview, opening, subtask, clone, rank, comment, assignment, transition, watch, notifications, search ]
+      responses = [ overview, opening, subtask, clone, rank, comment, labels, assignment, transition, watch, notifications, search ]
 
     return "\n#{responses.join '\n\n\n'}"
 
