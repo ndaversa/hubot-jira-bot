@@ -42,11 +42,11 @@ class Create
         fields:
           project: key: project
           summary: summary
-          labels: labels
           description: ""
           issuetype: name: type
 
       _(issue.fields).extend fields if fields
+      issue.fields.labels = _(issue.fields.labels).union labels
       issue.fields.description += """
         #{(if description then description + "\n\n" else "")}
         Reported by #{msg.message.user.name} in ##{msg.message.room} on #{msg.robot.adapterName}
@@ -91,6 +91,7 @@ class Create
     .then (parent) ->
       Create.with parent.fields.project.key, "Sub-task", summary, msg,
         parent: key: parent.key
+        labels: parent.fields.labels or []
         description: "Sub-task of #{key}\n\n"
 
 module.exports = Create
