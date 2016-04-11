@@ -55,39 +55,43 @@ class JiraBot
     @registerEventListeners()
     @registerRobotResponses()
 
-  send: (context, message) ->
-    unless _(message).isString()
-      unless @shouldIncludeAttachmentForTicketKey _(context).extend message
-        message.attachments = []
-
+  send: (context, message, filter=yes) ->
+    message = @filterAttachmentsForPreviousMentions context, message if filter
     @adapter.send context, message
 
-  shouldIncludeAttachmentForTicketKey: (msg) ->
-    should = yes
-    return should unless @mentions?
-    return should unless msg.attachments?.length > 0
-    key = msg.attachments[0].author_name?.trim().toUpperCase()
-    return should unless Config.ticket.regex.test key
-    room = msg.message.room
+  filterAttachmentsForPreviousMentions: (context, message) ->
+    return message if _(message).isString()
+    return message unless @mentions?
+    return message unless message.attachments?.length > 0
+    room = context.message.room
 
-    if @mentions[room]
-      if time = @mentions[room].tickets[key]
-        should = moment().isAfter time
-    else
-      @mentions[room] = tickets: {}
-    @mentions[room].tickets[key] = moment().add 5, 'minutes' if should
+    removals = []
+    for attachment in message.attachments
+      keep = yes
+      key = attachment.author_name?.trim().toUpperCase()
+      continue unless Config.ticket.regex.test key
+      if @mentions[room]
+        if time = @mentions[room].tickets[key]
+          keep = moment().isAfter time
+      else
+        @mentions[room] = tickets: {}
+      @mentions[room].tickets[key] = moment().add 5, 'minutes' if keep
 
-    #Cleanup other mention expiries
-    for r, obj of @mentions
-      for k, t of @mentions[r].tickets
-        if moment().isAfter t
-          delete @mentions[r].tickets[k]
+      #Cleanup other mention expiries
+      for r, obj of @mentions
+        for k, t of @mentions[r].tickets
+          if moment().isAfter t
+            delete @mentions[r].tickets[k]
 
-    @robot.brain.set JiraBot.JIRA_ROOM_TICKET_MENTIONS, @mentions
-    @robot.brain.save()
+      @robot.brain.set JiraBot.JIRA_ROOM_TICKET_MENTIONS, @mentions
+      @robot.brain.save()
 
-    @robot.logger.info "Supressing ticket attachment for #{key} in #{room}" unless should
-    return should
+      unless keep
+        @robot.logger.info "Supressing ticket attachment for #{key} in #{room}"
+        removals.push attachment
+
+    message.attachments = _(message.attachments).difference removals
+    return message
 
   matchJiraTicket: (message) ->
     if message.match?
@@ -324,6 +328,7 @@ class JiraBot
         @send msg,
           text: results.text
           attachments: attachments
+        , no
       .catch (error) =>
         @send msg, "Unable to search for `#{query}` :sadpanda:"
         @robot.logger.error error.stack
