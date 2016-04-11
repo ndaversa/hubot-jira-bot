@@ -56,13 +56,19 @@ class JiraBot
     @registerRobotResponses()
 
   send: (context, message) ->
+    unless _(message).isString()
+      unless @shouldIncludeAttachmentForTicketKey _(context).extend message
+        message.attachments = []
+
     @adapter.send context, message
 
-  shouldIncludeAttachmentForTicketKey: (key, msg) ->
+  shouldIncludeAttachmentForTicketKey: (msg) ->
     should = yes
     return should unless @mentions?
+    return should unless msg.attachments?.length > 0
+    key = msg.attachments[0].author_name?.trim().toUpperCase()
+    return should unless Config.ticket.regex.test key
     room = msg.message.room
-    key = key.trim().toUpperCase()
 
     if @mentions[room]
       if time = @mentions[room].tickets[key]
@@ -85,9 +91,9 @@ class JiraBot
 
   matchJiraTicket: (message) ->
     if message.match?
-      matches = message.match(Config.ticket.regex)
+      matches = message.match(Config.ticket.regexGlobal)
     else if message.message?.rawText?.match?
-      matches = message.message.rawText.match(Config.ticket.regex)
+      matches = message.message.rawText.match(Config.ticket.regexGlobal)
 
     if matches and matches[0]
       return matches
@@ -96,14 +102,13 @@ class JiraBot
         attachments = message.message.rawMessage.attachments
         for attachment in attachments
           if attachment.text?
-            matches = attachment.text.match(Config.ticket.regex)
+            matches = attachment.text.match(Config.ticket.regexGlobal)
             if matches and matches[0]
               return matches
     return false
 
   prepareResponseForJiraTickets: (msg) ->
     Promise.all(msg.match.map (key) =>
-      return unless @shouldIncludeAttachmentForTicketKey key, msg
       _attachments = []
       Jira.Create.fromKey(key).then (ticket) ->
         _attachments.push ticket.toAttachment()
@@ -177,9 +182,6 @@ class JiraBot
   registerEventListeners: ->
     #Create
     @robot.on "JiraTicketCreated", (ticket, room) =>
-      #Record the ticket key for subsequent mention debouncing
-      @shouldIncludeAttachmentForTicketKey ticket.key, message: room: room
-
       @send message: room: room,
         text: "Ticket created"
         attachments: [ ticket.toAttachment no ]
@@ -331,8 +333,7 @@ class JiraBot
       @robot.hear Config.transitions.regex, (msg) =>
         msg.finish()
         [ __, key, toState ] = msg.match
-        includeAttachment = @shouldIncludeAttachmentForTicketKey key, msg
-        Jira.Transition.forTicketKeyToState key, toState, msg, includeAttachment
+        Jira.Transition.forTicketKeyToState key, toState, msg, no
 
     #Clone
     @robot.hear Config.clone.regex, (msg) =>
@@ -346,18 +347,16 @@ class JiraBot
       msg.finish()
       [ __, key, remove, person ] = msg.match
 
-      includeAttachment = @shouldIncludeAttachmentForTicketKey key, msg
       if remove
-        Jira.Watch.forTicketKeyRemovePerson key, person, msg, includeAttachment
+        Jira.Watch.forTicketKeyRemovePerson key, person, msg, no
       else
-        Jira.Watch.forTicketKeyForPerson key, person, msg, includeAttachment
+        Jira.Watch.forTicketKeyForPerson key, person, msg, no
 
     #Rank
     @robot.hear Config.rank.regex, (msg) =>
       msg.finish()
       [ __, key, direction ] = msg.match
-      includeAttachment = @shouldIncludeAttachmentForTicketKey key, msg
-      Jira.Rank.forTicketKeyByDirection key, direction, msg, includeAttachment
+      Jira.Rank.forTicketKeyByDirection key, direction, msg, no
 
     #Labels
     @robot.hear Config.labels.addRegex, (msg) =>
@@ -367,16 +366,14 @@ class JiraBot
       labels = []
       labels = (input.match(Config.labels.regex).map((label) -> label.replace('#', '').trim())).concat(labels)
 
-      includeAttachment = @shouldIncludeAttachmentForTicketKey key, msg
-      Jira.Labels.forTicketKeyWith key, labels, msg, includeAttachment
+      Jira.Labels.forTicketKeyWith key, labels, msg, no
 
     #Comment
     @robot.hear Config.comment.regex, (msg) =>
       msg.finish()
       [ __, key, comment ] = msg.match
 
-      includeAttachment = @shouldIncludeAttachmentForTicketKey key, msg
-      Jira.Comment.forTicketKeyWith key, comment, msg, includeAttachment
+      Jira.Comment.forTicketKeyWith key, comment, msg, no
 
     #Subtask
     @robot.respond Config.subtask.regex, (msg) =>
@@ -389,11 +386,10 @@ class JiraBot
       msg.finish()
       [ __, key, remove, person ] = msg.match
 
-      includeAttachment = @shouldIncludeAttachmentForTicketKey key, msg
       if remove
-        Jira.Assign.forTicketKeyToUnassigned key, msg, includeAttachment
+        Jira.Assign.forTicketKeyToUnassigned key, msg, no
       else
-        Jira.Assign.forTicketKeyToPerson key, person, msg, includeAttachment
+        Jira.Assign.forTicketKeyToPerson key, person, msg, no
 
     #Create
     @robot.respond Config.commands.regex, (msg) =>

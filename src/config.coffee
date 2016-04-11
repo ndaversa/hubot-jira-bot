@@ -25,8 +25,8 @@ class Config
       mentionRegex: /(?:\[~([\w._]*)\])/i
       mentionRegexGlobal: /(?:\[~([\w._]*)\])/gi
   @jira.urlRegexBase = "#{Config.jira.url}/browse/".replace /[-\/\\^$*+?.()|[\]{}]/g, '\\$&'
-  @jira.urlRegex = RegExp "(?:#{Config.jira.urlRegexBase})((?:#{Config.projects.prefixes}-)\\d+)\\s*", "i"
-  @jira.urlRegexGlobal = RegExp "(?:#{Config.jira.urlRegexBase})((?:#{Config.projects.prefixes}-)\\d+)\\s*", "gi"
+  @jira.urlRegex = new RegExp "(?:#{Config.jira.urlRegexBase})((?:#{Config.projects.prefixes}-)\\d+)\\s*", "i"
+  @jira.urlRegexGlobal = new RegExp "(?:#{Config.jira.urlRegexBase})((?:#{Config.projects.prefixes}-)\\d+)\\s*", "gi"
 
   @github:
     token: process.env.HUBOT_GITHUB_TOKEN
@@ -35,19 +35,20 @@ class Config
     token: process.env.HUBOT_SLACK_TOKEN
 
   @ticket:
-    regex: RegExp "(^|\\s)(" + Config.projects.prefixes + "-)(\\d+)\\b", "gi"
+    regex: new RegExp "(^|\\s)(" + Config.projects.prefixes + "-)(\\d+)\\b", "i"
+    regexGlobal: new RegExp "(^|\\s)(" + Config.projects.prefixes + "-)(\\d+)\\b", "gi"
 
   @commands:
-    regex: RegExp "(?:#?(#{Config.projects.channels})\\s+)?(#{Config.types.commands}) ([^]+)", "i"
+    regex: new RegExp "(?:#?(#{Config.projects.channels})\\s+)?(#{Config.types.commands}) ([^]+)", "i"
 
   @transitions:
     if Config.maps.transitions
-      regex: RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s+(?:to\\s+|>\\s?)(#{(Config.maps.transitions.map (t) -> t.name).join "|"})", "i"
-      shouldRegex: RegExp "\\s+>\\s?(#{(Config.maps.transitions.map (t) -> t.name).join "|"})", "i"
+      regex: new RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s+(?:to\\s+|>\\s?)(#{(Config.maps.transitions.map (t) -> t.name).join "|"})", "i"
+      shouldRegex: new RegExp "\\s+>\\s?(#{(Config.maps.transitions.map (t) -> t.name).join "|"})", "i"
 
   @priority:
     if Config.maps.priorities
-      regex: RegExp "\\s+!(#{(Config.maps.priorities.map (priority) -> priority.name).join '|'})\\b", "i"
+      regex: new RegExp "\\s+!(#{(Config.maps.priorities.map (priority) -> priority.name).join '|'})\\b", "i"
 
   @quote:
     regex: /`{1,3}([^]*?)`{1,3}/
@@ -57,26 +58,26 @@ class Config
     regexGlobal: /(?:(?:^|\s+)@([\w._]*))/gi
 
   @rank:
-    regex: RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+)) rank (.*)", "i"
+    regex: new RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+)) rank (.*)", "i"
 
   @watch:
     notificationsRegex: /jira (allow|start|enable|disallow|disable|stop)( notifications)?/i
-    regex: RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+)) (un)?watch(?: @?([\\w._]*))?", "i"
+    regex: new RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+)) (un)?watch(?: @?([\\w._]*))?", "i"
 
   @subtask:
-    regex: RegExp "subtask\\s+((?:#{Config.projects.prefixes}-)(?:\\d+)) ([^]+)", "i"
+    regex: new RegExp "subtask\\s+((?:#{Config.projects.prefixes}-)(?:\\d+)) ([^]+)", "i"
 
   @assign:
-    regex: RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))(?: (un)?assign)? @?([\\w._]*)\\s*$", "i"
+    regex: new RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))(?: (un)?assign)? @?([\\w._]*)\\s*$", "i"
 
   @clone:
-    regex: RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s*(?:(?:>|clone(?:s)?(?:\\s+to)?)\\s*)(?:#)?(#{Config.projects.channels})", "i"
+    regex: new RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s*(?:(?:>|clone(?:s)?(?:\\s+to)?)\\s*)(?:#)?(#{Config.projects.channels})", "i"
 
   @comment:
-    regex: RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s?(?:<\\s?)([^]+)", "i"
+    regex: new RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s?(?:<\\s?)([^]+)", "i"
 
   @labels:
-    addRegex: RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s?<(\\s*#\\S+)+$", "i"
+    addRegex: new RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s?<(\\s*#\\S+)+$", "i"
     regex: /(?:\s+|^)#\S+/g
 
   @search:
