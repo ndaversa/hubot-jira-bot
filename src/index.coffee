@@ -62,6 +62,7 @@ class JiraBot
     should = yes
     return should unless @mentions?
     room = msg.message.room
+    key = key.trim().toUpperCase()
 
     if @mentions[room]
       if time = @mentions[room].tickets[key]
