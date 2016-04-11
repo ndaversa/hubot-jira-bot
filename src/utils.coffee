@@ -38,6 +38,10 @@ class Utils
       catch e
         throw error
 
+  @lookupRoomsForProject: (project) ->
+    results = _(Config.maps.projects).pick (p) -> p is project
+    _(results).keys()
+
   @lookupChatUser: (username) ->
     users = Utils.robot.brain.users()
     result = (users[user] for user of users when users[user].name is username)

@@ -15,9 +15,11 @@ class Help
 
     opening = """
     *Opening Tickets*
-    > #{robot.name} `<type>` `<title>` [`<description>`]
+    > #{robot.name} [`<project>`] `<type>` `<title>` [`<description>`]
 
-    Where `<type>` is one of the following: #{(_(Config.maps.types).keys().map (t) -> "`#{t}`").join ',  '}
+    You can omit `<project>` when using the command in the desired projects channel
+    Otherwise you can specify one of the following for `<project>`: #{(_(Config.maps.projects).keys().map (c) -> "`##{c}`").join ',  '}
+    `<type>` is one of the following: #{(_(Config.maps.types).keys().map (t) -> "`#{t}`").join ',  '}
     `<description>` is optional and is surrounded with single or triple backticks
     and can be used to provide a more detailed description for the ticket.
     `<title>` is a short summary of the ticket

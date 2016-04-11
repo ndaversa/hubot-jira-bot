@@ -58,7 +58,9 @@ class Create
     .then (json) ->
       Create.fromKey(json.key)
       .then (ticket) ->
+        roomProject = Config.maps.projects[msg.message.room]
         Utils.robot.emit "JiraTicketCreated", ticket, msg.message.room
+        Utils.robot.emit "JiraTicketCreatedElsewhere", ticket, msg unless roomProject is project
         ticket
       .then (ticket) ->
         Transition.forTicketToState ticket, toState, msg, no if toState

@@ -184,6 +184,14 @@ class JiraBot
       robot.logger.error error.stack
       @send message: room: room, "Unable to create ticket #{error}"
 
+    #Created in another room
+    @robot.on "JiraTicketCreatedElsewhere", (ticket, msg) =>
+      channel = @robot.adapter.client.getChannelGroupOrDMByName msg.message.room
+      for r in Utils.lookupRoomsForProject ticket.fields.project.key
+        @send message: room: r,
+          text: "Ticket created in <##{channel.id}|#{channel.name}> by <@#{msg.message.user.id}>"
+          attachments: [ ticket.toAttachment no ]
+
     #Clone
     @robot.on "JiraTicketCloned", (ticket, room, clone, msg) =>
       channel = @robot.adapter.client.getChannelGroupOrDMByName msg.message.room
@@ -385,8 +393,8 @@ class JiraBot
 
     #Create
     @robot.respond Config.commands.regex, (msg) =>
-      [ __, command, summary ] = msg.match
-      room = msg.message.room
+      [ __, project, command, summary ] = msg.match
+      room = project or msg.message.room
       project = Config.maps.projects[room]
       type = Config.maps.types[command]
 
