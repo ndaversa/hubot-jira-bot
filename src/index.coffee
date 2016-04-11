@@ -177,6 +177,9 @@ class JiraBot
   registerEventListeners: ->
     #Create
     @robot.on "JiraTicketCreated", (ticket, room) =>
+      #Record the ticket key for subsequent mention debouncing
+      @shouldIncludeAttachmentForTicketKey ticket.key, message: room: room
+
       @send message: room: room,
         text: "Ticket created"
         attachments: [ ticket.toAttachment no ]
