@@ -131,8 +131,9 @@ or if you wish to re-enable
 
 ####Searching Tickets
 > hubot jira search `<term>`
+
 #####Optional `<term>` Attributes
-    _Labels_: include one or many hashtags that will become labels included in the search
-         `#quick #techdebt`
+ _Labels_: include one or many hashtags that will become labels included in the search
+      `#quick #techdebt`
 
 Where `<term>` is some text contained in the ticket you are looking for##Documentation with Configuration examples from above
