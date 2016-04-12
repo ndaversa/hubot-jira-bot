@@ -7,7 +7,7 @@ class Help
   @forTopic: (topic, robot) ->
     overview = """
     *The Definitive #{robot.name.toUpperCase()} JIRA Manual*
-    <@#{robot.adapter.self.id}> can help you *search* for JIRA tickets, *open*
+    @#{robot.name} can help you *search* for JIRA tickets, *open*
     them, *transition* them thru different states, *comment* on them, *rank*
     them _up_ or _down_, start or stop *watching* them or change who is
     *assigned* to a ticket
@@ -110,7 +110,7 @@ class Help
     *Ticket Notifications*
 
     Whenever you begin watching a JIRA ticket you will be notified (via a direct
-    message from <@#{robot.adapter.self.id}>) whenever any of the following events occur:
+    message from @#{robot.name}) whenever any of the following events occur:
           - a comment is left on the ticket
           - the ticket is in progress
           - the ticket is resolved

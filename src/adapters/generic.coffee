@@ -44,11 +44,15 @@ class GenericAdapter
   send: (context, message) ->
     if _(message).isString()
       payload = message
-    else if message.attachments
+    else if message.text or message.attachments
       payload = ""
-      payload += "#{message.text}\n" if message.text
-      for attachment in message.attachments
-        payload += "#{attachment.fallback}\n"
+
+      if message.text
+        payload += "#{message.text}\n"
+
+      if message.attachments
+        for attachment in message.attachments
+          payload += "#{attachment.fallback}\n"
     else
       return @robot.logger.error "Unable to find a message to send", message
 
@@ -66,5 +70,7 @@ class GenericAdapter
         message.text += "\n#{message.footer}" if message.text and message.footer and @getDMCountFor(user) < 3
         @send message: room: user.name, message
         @incrementDMCountFor user
+
+  getPermalink: (msg) -> ""
 
 module.exports = GenericAdapter

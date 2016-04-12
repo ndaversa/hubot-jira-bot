@@ -50,7 +50,7 @@ class Create
       issue.fields.description += """
         #{(if description then description + "\n\n" else "")}
         Reported by #{msg.message.user.name} in ##{msg.message.room} on #{msg.robot.adapterName}
-        https://#{msg.robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}
+        #{Utils.JiraBot.adapter.getPermalink msg}
       """
       issue.fields.reporter = reporter if reporter
       issue.fields.priority = id: priority.id if priority

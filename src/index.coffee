@@ -40,11 +40,12 @@ class JiraBot
 
   constructor: (@robot) ->
     return new JiraBot @robot unless @ instanceof JiraBot
+    Utils.robot = @robot
+    Utils.JiraBot = @
     @robot.brain.once "loaded", =>
       @mentions = @robot.brain.get(JiraBot.JIRA_ROOM_TICKET_MENTIONS) or {}
 
     @webhook = new Jira.Webhook @robot
-    Utils.robot = @robot
     switch @robot.adapterName
       when "slack"
         @adapter = new Adapters.Slack @robot

@@ -46,7 +46,7 @@ class Clone
           comment:
             body: """
               Cloned by #{msg.message.user.name} in ##{msg.message.room} on #{msg.robot.adapterName}
-              https://#{msg.robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}
+              #{Utils.JiraBot.adapter.getPermalink msg}
             """
     .then ->
       Utils.robot.emit "JiraTicketCreated", cloned, msg.message.room

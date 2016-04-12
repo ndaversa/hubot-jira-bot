@@ -145,4 +145,7 @@ class Slack extends GenericAdapter
     .catch (error) ->
       @robot.logger.error error
 
+  getPermalink: (msg) ->
+    "https://#{msg.robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}"
+
 module.exports = Slack
