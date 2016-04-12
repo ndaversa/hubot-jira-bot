@@ -38,7 +38,7 @@ Otherwise you can specify one of the following for `<project>`: `#web`,  `#andro
 `<description>` is optional and is surrounded with single or triple backticks
 and can be used to provide a more detailed description for the ticket.
 `<title>` is a short summary of the ticket
-   
+
 #####Optional `<title>` Attributes
 
 _Labels_: include one or many hashtags that will become labels on the jira ticket
