@@ -39,17 +39,17 @@ Otherwise you can specify one of the following for `<project>`: `#web`,  `#andro
 and can be used to provide a more detailed description for the ticket.
 `<title>` is a short summary of the ticket
    *Optional `<title>` Attributes*
-       _Labels_: include one or many hashtags that will become labels on the jira ticket
-            `#quick #techdebt`
+   _Labels_: include one or many hashtags that will become labels on the jira ticket
+        `#quick #techdebt`
 
-       _Assignment_: include a handle that will be used to assign the ticket after creation
-            `@username`
+   _Assignment_: include a handle that will be used to assign the ticket after creation
+        `@username`
 
-       _Transitions_: include a transition to make after the ticket is created
-           `>triage`,  `>icebox`,  `>backlog`,  `>devready`,  `>inprogress`,  `>design`
+   _Transitions_: include a transition to make after the ticket is created
+       `>triage`,  `>icebox`,  `>backlog`,  `>devready`,  `>inprogress`,  `>design`
 
-       _Priority_: include the ticket priority to be assigned upon ticket creation
-           `!blocker`,  `!critical`,  `!major`,  `!minor`,  `!trivial`
+   _Priority_: include the ticket priority to be assigned upon ticket creation
+       `!blocker`,  `!critical`,  `!major`,  `!minor`,  `!trivial`
 
 
 *Creating Sub-tasks*
