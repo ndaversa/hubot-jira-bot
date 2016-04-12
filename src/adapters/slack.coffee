@@ -143,6 +143,6 @@ class Slack extends GenericAdapter
       throw "Cannot find jira ticket" unless ticket and ticket.length is 2
       return ticket[1]
     .catch (error) ->
-      @robot.logger.info error
+      @robot.logger.error error
 
 module.exports = Slack
