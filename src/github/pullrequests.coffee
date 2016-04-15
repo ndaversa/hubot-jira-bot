@@ -12,17 +12,14 @@ class PullRequests
   constructor: (prs) ->
     @prs = (new PullRequest p for p in prs)
 
-  @fromId: (id) ->
-    Utils.fetch("#{Config.jira.url}/rest/dev-status/1.0/issue/detail?issueId=#{id}&applicationType=github&dataType=branch")
+  @fromKey: (key) ->
+    octo.search.issues.fetch
+      q: "#{key} @#{Config.github.organization} state:open"
     .then (json) ->
-      if json.detail?[0]?.pullRequests
-        return Promise.all json.detail[0].pullRequests.map (pr) ->
-          if pr.status is "OPEN"
-            orgAndRepo = pr.destination.url.split("github.com")[1].split('tree')[0].split('/')
-            repo = octo.repos(orgAndRepo[1], orgAndRepo[2])
-            return repo.pulls(pr.id.replace('#', '')).fetch()
-    .then (prs) ->
-      new PullRequests _(prs).compact()
+      return Promise.all json.items.map (issue) ->
+        octo.fromUrl(issue.pullRequest.url).fetch() if issue.pullRequest?.url
+    .then (issues) ->
+      new PullRequests _(issues).compact()
 
   toAttachment: ->
     attachments = (pr.toAttachment() for pr in @prs)

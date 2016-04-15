@@ -73,26 +73,24 @@ class Utils
     return result[0] if result?.length is 1
     return null
 
-  @lookupUserWithGithub: (github) ->
-    return Promise.resolve() if not github
+  @lookupUserWithGithub: (user) ->
+    return undefined unless user?.login
 
-    github.fetch().then (user) ->
-      name = user.name or github.login
-      users = Utils.robot.brain.users()
-      users = _(users).keys().map (id) ->
-        u = users[id]
-        id: u.id
-        name: u.name
-        real_name: u.real_name
+    users = Utils.robot.brain.users()
+    users = _(users).keys().map (id) ->
+      u = users[id]
+      id: u.id
+      name: u.name
+      real_name: u.real_name
 
-      f = new Fuse users,
-        keys: ['real_name']
-        shouldSort: yes
-        verbose: no
+    f = new Fuse users,
+      keys: ['real_name']
+      shouldSort: yes
+      verbose: no
 
-      results = f.search name
-      result = if results? and results.length >=1 then results[0] else undefined
-      return result
+    results = f.search user.login
+    result = if results? and results.length >=1 then results[0] else undefined
+    return result
 
   @buildQueryString: (params) ->
     "?#{("#{encodeURIComponent k}=#{encodeURIComponent v}" for k,v of params when v).join "&"}"

@@ -20,6 +20,7 @@ assigned to a ticket
 - `HUBOT_JIRA_TRANSITIONS_MAP` `[{"name":"triage","jira":"Triage"},{"name":"icebox","jira":"Icebox"},{"name":"backlog","jira":"Backlog"},{"name":"devready","jira":"Selected for Development"},{"name":"inprogress","jira":"In Progress"},{"name":"design","jira":"Design Triage"}]`
 - `HUBOT_JIRA_PRIORITIES_MAP` `[{"name":"Blocker","id":"1"},{"name":"Critical","id":"2"},{"name":"Major","id":"3"},{"name":"Minor","id":"4"},{"name":"Trivial","id":"5"}]`
 - `HUBOT_GITHUB_TOKEN` - Github Application Token
+- `HUBOT_GITHUB_ORG` - Github Organization or Github User
 
 
 ###The Definitive hubot JIRA Manual
