@@ -44,7 +44,7 @@ class Config
 
   @transitions:
     if Config.maps.transitions
-      regex: new RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s+(?:to\\s+|>\\s?)(#{(Config.maps.transitions.map (t) -> t.name).join "|"})", "i"
+      regex: new RegExp "^((?:#{Config.projects.prefixes}-)(?:\\d+))\\s+(?:to\\s+|>\\s?)(#{(Config.maps.transitions.map (t) -> t.name).join "|"})", "i"
       shouldRegex: new RegExp "\\s+>\\s?(#{(Config.maps.transitions.map (t) -> t.name).join "|"})", "i"
 
   @priority:
@@ -63,22 +63,22 @@ class Config
 
   @watch:
     notificationsRegex: /jira (allow|start|enable|disallow|disable|stop)( notifications)?/i
-    regex: new RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+)) (un)?watch(?: @?([\\w._]*))?", "i"
+    regex: new RegExp "^((?:#{Config.projects.prefixes}-)(?:\\d+)) (un)?watch(?: @?([\\w._]*))?", "i"
 
   @subtask:
     regex: new RegExp "subtask\\s+((?:#{Config.projects.prefixes}-)(?:\\d+)) ([^]+)", "i"
 
   @assign:
-    regex: new RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))(?: (un)?assign)? @?([\\w._]*)\\s*$", "i"
+    regex: new RegExp "^((?:#{Config.projects.prefixes}-)(?:\\d+))(?: (un)?assign)? @?([\\w._]*)\\s*$", "i"
 
   @clone:
-    regex: new RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s*(?:(?:>|clone(?:s)?(?:\\s+to)?)\\s*)(?:#)?(#{Config.projects.channels})", "i"
+    regex: new RegExp "^((?:#{Config.projects.prefixes}-)(?:\\d+))\\s*(?:(?:>|clone(?:s)?(?:\\s+to)?)\\s*)(?:#)?(#{Config.projects.channels})", "i"
 
   @comment:
-    regex: new RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s?(?:<\\s?)([^]+)", "i"
+    regex: new RegExp "^((?:#{Config.projects.prefixes}-)(?:\\d+))\\s?(?:<\\s?)([^]+)", "i"
 
   @labels:
-    addRegex: new RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+))\\s?<(\\s*#\\S+)+$", "i"
+    addRegex: new RegExp "^((?:#{Config.projects.prefixes}-)(?:\\d+))\\s?<(\\s*#\\S+)+$", "i"
     regex: /(?:\s+|^)#\S+/g
 
   @search:
