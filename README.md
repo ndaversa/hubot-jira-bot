@@ -22,6 +22,15 @@ assigned to a ticket
 - `HUBOT_GITHUB_TOKEN` - Github Application Token
 - `HUBOT_GITHUB_ORG` - Github Organization or Github User
 
+Note that `HUBOT_JIRA_USERNAME` should be the Jira username, this is 
+not necessarily the username used if you log in via the web.  To 
+determine a user's username, log in as that user via the web, and check
+the user profile.  Frequently, users may log in using an email address such
+as 'bob@somewhere.com' or a stem, such as 'bob'; these may or may not match
+the username in JIRA. Because hubot-jira-bot will create and change tickets,
+it is recommended that you create a separate JIRA account for this purpose,
+otherwise tickets that the bot creates will show as reported by the human
+user's account you specified.
 
 ###The Definitive hubot JIRA Manual
 @hubot can help you *search* for JIRA tickets, *open*
