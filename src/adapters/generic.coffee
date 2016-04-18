@@ -1,7 +1,5 @@
 _ = require "underscore"
 
-Utils = require "../utils"
-
 class GenericAdapter
   @JIRA_NOTIFICATIONS_DISABLED: "jira-notifications-disabled"
   @JIRA_DM_COUNTS: "jira-dm-counts"

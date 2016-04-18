@@ -16,6 +16,8 @@ class Webhook
       else if event.webhookEvent is "jira:issue_created"
         @onCreate event
 
+      res.send 'OK'
+
   onChangelog: (event) ->
     return unless event.changelog.items?.length > 0
     for item in event.changelog.items
