@@ -14,7 +14,7 @@ class PullRequests
 
   @fromKey: (key) ->
     octo.search.issues.fetch
-      q: "#{key} @#{Config.github.organization} state:open"
+      q: "#{key} @#{Config.github.organization} state:open type:pr"
     .then (json) ->
       return Promise.all json.items.map (issue) ->
         octo.fromUrl(issue.pullRequest.url).fetch() if issue.pullRequest?.url
