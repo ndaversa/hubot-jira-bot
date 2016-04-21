@@ -122,8 +122,10 @@ class Slack extends GenericAdapter
         endpoint = "groups"
       when "C"
         endpoint = "channels"
+      when "D"
+        endpoint = "im"
       else
-        return
+        return Promise.reject()
 
     params =
       channel: channel
