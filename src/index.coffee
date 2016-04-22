@@ -1,8 +1,8 @@
 # Description:
-#  Lets you search for JIRA tickets, open
-#  them, transition them thru different states, comment on them, rank
-#  them up or down, start or stop watching them or change who is
-#  assigned to a ticket
+# Lets you search for JIRA tickets, open
+# them, transition them thru different states, comment on them, rank
+# them up or down, start or stop watching them or change who is
+# assigned to a ticket. Also, notifications for mentions and watched tickets.
 #
 # Dependencies:
 # - moment

@@ -2,7 +2,7 @@
 Lets you search for JIRA tickets, open
 them, transition them thru different states, comment on them, rank
 them up or down, start or stop watching them or change who is
-assigned to a ticket
+assigned to a ticket. Also, notifications for mentions and watched tickets.
 
 ###Dependencies:
 - moment
@@ -22,15 +22,35 @@ assigned to a ticket
 - `HUBOT_GITHUB_TOKEN` - Github Application Token
 - `HUBOT_GITHUB_ORG` - Github Organization or Github User
 
-Note that `HUBOT_JIRA_USERNAME` should be the Jira username, this is 
-not necessarily the username used if you log in via the web.  To 
+Note that `HUBOT_JIRA_USERNAME` should be the JIRA username, this is
+not necessarily the username used if you log in via the web.  To
 determine a user's username, log in as that user via the web, and check
 the user profile.  Frequently, users may log in using an email address such
 as 'bob@somewhere.com' or a stem, such as 'bob'; these may or may not match
-the username in JIRA. Because hubot-jira-bot will create and change tickets,
-it is recommended that you create a separate JIRA account for this purpose,
-otherwise tickets that the bot creates will show as reported by the human
-user's account you specified.
+the username in JIRA.
+
+####A note about chat:jira user lookup
+In order for direct messages (notifications) and a few other
+username based commands to work JiraBot attempts to match JIRA users with chat
+users by email address. This has been tested primarily on the [Hubot
+Slack adapter](https://github.com/slackhq/hubot-slack) and may not work without modification on others.
+The take away is that you must have the same e-mail address on both
+services for this to work as expected.
+
+####Notifications via Webhooks
+In order to receive JIRA notifications you will need to setup a webhook.
+You can find instructions to do so on [Atlassian's
+website](https://developer.atlassian.com/jiradev/jira-apis/webhooks).
+You will need your hubot to be reachable from the outside world for this
+to work. JiraBot is listening on `/hubot/jira-events`. Currently
+the following notifications are available:
+
+* You are mentioned in a ticket in either the description or in a
+  comment
+* The following mentions only apply if you are watching the ticket in
+  question:
+    * Work begins on the ticket (enters the In Progress state or similar)
+    * The ticket is closed
 
 ###The Definitive hubot JIRA Manual
 @hubot can help you *search* for JIRA tickets, *open*
