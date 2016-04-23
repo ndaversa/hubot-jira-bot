@@ -51,6 +51,7 @@ the following notifications are available:
   question:
     * Work begins on the ticket (enters the In Progress state or similar)
     * The ticket is closed
+    * A new comment is left on the ticket
 
 ###The Definitive hubot JIRA Manual
 @hubot can help you *search* for JIRA tickets, *open*
