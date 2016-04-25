@@ -186,6 +186,15 @@ class JiraBot
         attachments: [ ticket.toAttachment no ]
 
   registerEventListeners: ->
+
+    #Find Matches (for cross-script usage)
+    @robot.on "JiraFindTicketMatches", (msg, cb) =>
+      cb @matchJiraTicket msg
+
+    #Prepare Responses For Tickets (for cross-script usage)
+    @robot.on "JiraPrepareResponseForTickets", (msg) =>
+      @prepareResponseForJiraTickets msg
+
     #Create
     @robot.on "JiraTicketCreated", (ticket, room) =>
       @send message: room: room,
