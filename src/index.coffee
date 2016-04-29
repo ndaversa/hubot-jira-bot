@@ -160,10 +160,27 @@ class JiraBot
         footer: disableDisclaimer
         attachments: [ ticket.toAttachment no ]
 
+    # Comment noitifications for watchers
     @robot.on "JiraWebhookTicketComment", (ticket, comment) =>
       @adapter.dm Utils.lookupChatUsersWithJira(ticket.watchers),
         text: """
           A ticket you are watching has a new comment from #{comment.author.displayName}:
+          ```
+          #{comment.body}
+          ```
+        """
+        author: comment.author
+        footer: disableDisclaimer
+        attachments: [ ticket.toAttachment no ]
+
+    # Comment noitifications for assignee
+    @robot.on "JiraWebhookTicketComment", (ticket, comment) =>
+      return unless ticket.fields.assignee
+      return if ticket.watchers.length > 0 and _(ticket.watchers).findWhere name: ticket.fields.assignee.name
+
+      @adapter.dm Utils.lookupChatUsersWithJira(ticket.fields.assignee),
+        text: """
+          A ticket you are assigned to has a new comment from #{comment.author.displayName}:
           ```
           #{comment.body}
           ```

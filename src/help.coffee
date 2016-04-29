@@ -115,9 +115,12 @@ class Help
           - the ticket is in progress
           - the ticket is resolved
 
-    You will also be notified (without watching the ticket when):
+    You will also be notified if:
          - you are mentioned on the ticket
          - you are assigned to the ticket
+
+    If you are assigned to a ticket, you will be notified when:
+          - a comment is left on the ticket
 
     To enable or disable this feature you can send the following directly to #{robot.name}:
 

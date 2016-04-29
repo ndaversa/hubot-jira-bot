@@ -48,7 +48,9 @@ the following notifications are available:
 * You are mentioned in a ticket in either the description or in a
   comment
 * You are assigned to a ticket
-* The following mentions only apply if you are watching the ticket in
+* The following notifications apply if you are assigned to the ticket:
+    * A new comment is left on the ticket
+* The following notifications apply if you are watching the ticket in
   question:
     * Work begins on the ticket (enters the In Progress state or similar)
     * The ticket is closed
@@ -153,9 +155,12 @@ message from @hubot) whenever any of the following events occur:
      - the ticket is in progress
      - the ticket is resolved
 
-You will also be notified (without watching the ticket when):
+You will also be notified if:
      - you are mentioned on the ticket
      - you are assigned to the ticket
+
+If you are assigned to a ticket, you will be notified when:
+      - a comment is left on the ticket
 
 To enable or disable this feature you can send the following directly to hubot:
 

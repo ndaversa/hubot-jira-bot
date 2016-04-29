@@ -34,7 +34,6 @@ class Webhook
       @onAtHandleMention event, event.comment.body.match(Config.mention.regex)[1], event.comment.body
     if Config.jira.mentionRegex.test event.comment.body
       @onJiraMention event, event.comment.body.match(Config.jira.mentionRegex)[1], event.comment.body
-    return unless event.issue.fields.watches.watchCount > 0
     Create = require "./create"
     Create.fromKey(event.issue.key)
     .then (ticket) =>
@@ -95,8 +94,6 @@ class Webhook
       @robot.emit "JiraWebhookTicketAssigned", ticket, chatUser, event
 
   onStatusChange: (event, item) ->
-    return unless event.issue.fields.watches.watchCount > 0
-
     states = [
       keywords: "done completed resolved fixed merged"
       name: "JiraWebhookTicketDone"
