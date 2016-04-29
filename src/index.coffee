@@ -2,7 +2,7 @@
 # Lets you search for JIRA tickets, open
 # them, transition them thru different states, comment on them, rank
 # them up or down, start or stop watching them or change who is
-# assigned to a ticket. Also, notifications for mentions and watched tickets.
+# assigned to a ticket. Also, notifications for mentions, assignments and watched tickets.
 #
 # Dependencies:
 # - moment
@@ -180,6 +180,16 @@ class JiraBot
           ```
           #{context}
           ```
+        """
+        author: event.user
+        footer: disableDisclaimer
+        attachments: [ ticket.toAttachment no ]
+
+    # Assigned
+    @robot.on "JiraWebhookTicketAssigned", (ticket, user, event) =>
+      @adapter.dm user,
+        text: """
+          You were assigned to a ticket by #{event.user.displayName}:
         """
         author: event.user
         footer: disableDisclaimer

@@ -2,7 +2,7 @@
 Lets you search for JIRA tickets, open
 them, transition them thru different states, comment on them, rank
 them up or down, start or stop watching them or change who is
-assigned to a ticket. Also, notifications for mentions and watched tickets.
+assigned to a ticket. Also, notifications for assignments, mentions and watched tickets.
 
 ###Dependencies:
 - moment
@@ -47,6 +47,7 @@ the following notifications are available:
 
 * You are mentioned in a ticket in either the description or in a
   comment
+* You are assigned to a ticket
 * The following mentions only apply if you are watching the ticket in
   question:
     * Work begins on the ticket (enters the In Progress state or similar)
@@ -151,6 +152,11 @@ message from @hubot) whenever any of the following events occur:
      - a comment is left on the ticket
      - the ticket is in progress
      - the ticket is resolved
+
+You will also be notified (without watching the ticket when):
+     - you are mentioned on the ticket
+     - you are assigned to the ticket
+
 To enable or disable this feature you can send the following directly to hubot:
 
 > jira disable notifications

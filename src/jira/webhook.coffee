@@ -26,6 +26,8 @@ class Webhook
           @onStatusChange event, item
         when "description"
           @onDescriptionChange event, item
+        when "assignee"
+          @onAssigneeChange event, item
 
   onComment: (event) ->
     if Config.mention.regex.test event.comment.body
@@ -78,6 +80,19 @@ class Webhook
       for mention in newMentions
         username = mention.match(Config.jira.mentionRegex)[1]
         @onJiraMention event, username, item.toString
+
+  onAssigneeChange: (event, item) ->
+    return unless item.to
+
+    chatUser = null
+    User.withUsername(item.to)
+    .then (jiraUser) ->
+      chatUser = Utils.lookupChatUserWithJira jiraUser
+      Promise.reject() unless chatUser
+      Create = require "./create"
+      Create.fromKey(event.issue.key)
+    .then (ticket) =>
+      @robot.emit "JiraWebhookTicketAssigned", ticket, chatUser, event
 
   onStatusChange: (event, item) ->
     return unless event.issue.fields.watches.watchCount > 0
