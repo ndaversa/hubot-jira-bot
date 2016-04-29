@@ -15,7 +15,7 @@ class GenericAdapter
   disableNotificationsFor: (user) ->
     @robot.logger.info "Disabling JIRA notifications for #{user.name}"
     @disabledUsers.push user.id
-    @robot.brain.set GenericAdapter.JIRA_NOTIFICATIONS_DISABLED, @disabledUsers
+    @robot.brain.set GenericAdapter.JIRA_NOTIFICATIONS_DISABLED, _(@disabledUsers).unique()
     @robot.brain.save()
 
   enableNotificationsFor: (user) ->
