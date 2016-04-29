@@ -14,6 +14,8 @@ class Comment
           #{Utils.JiraBot.adapter.getPermalink msg}
         """
     .then ->
+      Utils.robot.logger.debug "#{ticket.key}:Comment", msg.message.user.email_address
+      Utils.cache.put "#{ticket.key}:Comment", msg.message.user.email_address
       msg.robot.emit "JiraTicketCommented", ticket, msg.message.room, includeAttachment
     .catch (error) ->
       msg.robot.emit "JiraTicketCommentFailed", error, msg.message.room

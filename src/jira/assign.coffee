@@ -21,6 +21,8 @@ class Assign
         Create = require "./create"
         Create.fromKey ticket.key
       .then (ticket) ->
+        Utils.robot.logger.debug "#{ticket.key}:Assigned", chatUser.email_address
+        Utils.cache.put "#{ticket.key}:Assigned", chatUser.email_address
         msg.robot.emit "JiraTicketAssigned", ticket, chatUser, msg.message.room, includeAttachment
       .catch (error) ->
         msg.robot.emit "JiraTicketAssignmentFailed", error, msg.message.room

@@ -1,6 +1,7 @@
 _ = require "underscore"
 Fuse = require "fuse.js"
 fetch = require "node-fetch"
+cache = require "memory-cache"
 
 Config = require "./config"
 
@@ -99,5 +100,9 @@ class Utils
     f = new Fuse arr, _(keys: keys, shouldSort: yes, threshold: 0.3).extend opts
     results = f.search term
     result = if results? and results.length >=1 then results[0]
+
+  @cache:
+    put: (key, value, time=Config.cache.expiry) -> cache.put key, value, time
+    get: cache.get
 
 module.exports = Utils

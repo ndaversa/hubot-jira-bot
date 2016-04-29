@@ -37,6 +37,14 @@ class Webhook
     Create = require "./create"
     Create.fromKey(event.issue.key)
     .then (ticket) =>
+      if author = Utils.cache.get "#{ticket.key}:Comment"
+        User.withEmail(author)
+        .then (user) ->
+          event.comment.author = user
+          ticket
+      else
+        ticket
+    .then (ticket) =>
       @robot.emit "JiraWebhookTicketComment", ticket, event.comment
 
   onCreate: (event) ->
@@ -90,6 +98,14 @@ class Webhook
       Promise.reject() unless chatUser
       Create = require "./create"
       Create.fromKey(event.issue.key)
+    .then (ticket) =>
+      if author = Utils.cache.get "#{ticket.key}:Assigned"
+        User.withEmail(author)
+        .then (user) ->
+          event.user = user
+          ticket
+      else
+        ticket
     .then (ticket) =>
       @robot.emit "JiraWebhookTicketAssigned", ticket, chatUser, event
 

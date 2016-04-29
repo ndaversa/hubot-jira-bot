@@ -24,6 +24,7 @@
   "dependencies": {
     "coffee-script": "^1.10.0",
     "fuse.js": "^2.2.0",
+    "memory-cache": "^0.1.5",
     "moment": "^2.12.0",
     "node-fetch": "^1.5.1",
     "octokat": "^0.5.0-beta.0",
