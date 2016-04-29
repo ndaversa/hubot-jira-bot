@@ -114,6 +114,11 @@ class Help
           - a comment is left on the ticket
           - the ticket is in progress
           - the ticket is resolved
+
+    You will also be notified (without watching the ticket when):
+         - you are mentioned on the ticket
+         - you are assigned to the ticket
+
     To enable or disable this feature you can send the following directly to #{robot.name}:
 
     > jira disable notifications
