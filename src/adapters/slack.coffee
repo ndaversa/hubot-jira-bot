@@ -23,6 +23,7 @@ class Slack extends GenericAdapter
       @onJiraTicketMessageAttachment msg if @hasJiraAttachment msg
       return unless msg.item_user is @robot.adapter.self.id
       return unless msg.user isnt @robot.adapter.self.id
+      msg.user = @robot.brain.users()[msg.user]
       if msg.type is "reaction_added"
         @onReactionAdded msg
       else if msg.type is "reaction_removed"
@@ -75,7 +76,7 @@ class Slack extends GenericAdapter
             robot: @robot
             message:
               room: msg.item.channel
-              user: @robot.adapter.client.getUserByID(msg.user)
+              user: msg.user
         when "raising_hand"
           Jira.Assign.forTicketKeyToUnassigned key,
             robot: @robot
@@ -93,13 +94,13 @@ class Slack extends GenericAdapter
             robot: @robot
             message:
               room: msg.item.channel
-              user: @robot.adapter.client.getUserByID(msg.user)
+              user: msg.user
         when "eyes"
           Jira.Watch.forTicketKeyForPerson key, null,
             robot: @robot
             message:
               room: msg.item.channel
-              user: @robot.adapter.client.getUserByID(msg.user)
+              user: msg.user
         when "soon", "fast_forward"
           term = if msg.reaction is "soon" then "selected" else "progress"
           result = Utils.fuzzyFind term, Config.maps.transitions, ['jira']
@@ -110,7 +111,7 @@ class Slack extends GenericAdapter
                 room: msg.item.channel
                 user: msg.user
         when "raising_hand"
-          Jira.Assign.forTicketKeyToPerson key, @robot.adapter.client.getUserByID(msg.user).name,
+          Jira.Assign.forTicketKeyToPerson key, msg.user.name,
             robot: @robot
             message:
               room: msg.item.channel
