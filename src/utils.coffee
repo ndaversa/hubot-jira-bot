@@ -102,7 +102,7 @@ class Utils
     result = if results? and results.length >=1 then results[0]
 
   @cache:
-    put: (key, value, time=Config.cache.expiry) -> cache.put key, value, time
+    put: (key, value, time=Config.cache.default.expiry) -> cache.put key, value, time
     get: cache.get
 
 module.exports = Utils

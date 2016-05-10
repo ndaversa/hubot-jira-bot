@@ -37,14 +37,10 @@ Utils = require "./utils"
 
 class JiraBot
 
-  @JIRA_ROOM_TICKET_MENTIONS: "jira-room-ticket-mentions"
-
   constructor: (@robot) ->
     return new JiraBot @robot unless @ instanceof JiraBot
     Utils.robot = @robot
     Utils.JiraBot = @
-    @robot.brain.once "loaded", =>
-      @mentions = @robot.brain.get(JiraBot.JIRA_ROOM_TICKET_MENTIONS) or {}
 
     @webhook = new Jira.Webhook @robot
     switch @robot.adapterName
@@ -63,34 +59,20 @@ class JiraBot
 
   filterAttachmentsForPreviousMentions: (context, message) ->
     return message if _(message).isString()
-    return message unless @mentions?
     return message unless message.attachments?.length > 0
     room = context.message.room
 
     removals = []
     for attachment in message.attachments
-      keep = yes
-      key = attachment.author_name?.trim().toUpperCase()
-      continue unless Config.ticket.regex.test key
-      if @mentions[room]
-        if time = @mentions[room].tickets[key]
-          keep = moment().isAfter time
-      else
-        @mentions[room] = tickets: {}
-      @mentions[room].tickets[key] = moment().add 5, 'minutes' if keep
+      ticket = attachment.author_name?.trim().toUpperCase()
+      continue unless Config.ticket.regex.test ticket
 
-      #Cleanup other mention expiries
-      for r, obj of @mentions
-        for k, t of @mentions[r].tickets
-          if moment().isAfter t
-            delete @mentions[r].tickets[k]
-
-      @robot.brain.set JiraBot.JIRA_ROOM_TICKET_MENTIONS, @mentions
-      @robot.brain.save()
-
-      unless keep
-        @robot.logger.info "Supressing ticket attachment for #{key} in #{room}"
+      key = "#{room}:#{ticket}"
+      if Utils.cache.get key
         removals.push attachment
+        @robot.logger.info "Supressing ticket attachment for #{ticket} in #{room}"
+      else
+        Utils.cache.put key, true, Config.cache.mention.expiry
 
     message.attachments = _(message.attachments).difference removals
     return message

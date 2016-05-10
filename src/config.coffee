@@ -1,6 +1,7 @@
 class Config
   @cache:
-    expiry: 60000 # 1 minute
+    default: expiry: 60*1000 # 1 minute
+    mention: expiry: 5*60*1000 # 5 minutes
 
   @maps:
     projects: JSON.parse process.env.HUBOT_JIRA_PROJECTS_MAP
