@@ -118,12 +118,12 @@ class Webhook
       name: "JiraWebhookTicketInProgress"
     ]
     status = Utils.fuzzyFind item.toString.toLowerCase(), states, ['keywords']
-    return @robot.logger.info "#{event.issue.key}: Ignoring transition to '#{item.toString}'" unless status
+    return @robot.logger.debug "#{event.issue.key}: Ignoring transition to '#{item.toString}'" unless status
 
     Create = require "./create"
     Create.fromKey(event.issue.key)
     .then (ticket) =>
-      @robot.logger.info "#{event.issue.key}: Emitting #{status.name} because of the transition to '#{item.toString}'"
+      @robot.logger.debug "#{event.issue.key}: Emitting #{status.name} because of the transition to '#{item.toString}'"
       @robot.emit status.name, ticket, event
 
 module.exports = Webhook
