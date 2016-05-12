@@ -70,7 +70,7 @@ class JiraBot
       key = "#{room}:#{ticket}"
       if Utils.cache.get key
         removals.push attachment
-        @robot.logger.info "Supressing ticket attachment for #{ticket} in #{room}"
+        @robot.logger.debug "Supressing ticket attachment for #{ticket} in #{room}"
       else
         Utils.cache.put key, true, Config.cache.mention.expiry
 
