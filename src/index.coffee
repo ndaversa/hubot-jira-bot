@@ -133,6 +133,20 @@ class JiraBot
         footer: disableDisclaimer
         attachments: [ ticket.toAttachment no ]
 
+    @robot.on "JiraWebhookTicketInReview", (ticket, event) =>
+      assignee = Utils.lookupUserWithJira ticket.fields.assignee
+      assigneeText = ""
+      assigneeText = "Please message #{assignee} if you wish to provide feedback." if assignee isnt "Unassigned"
+
+      @adapter.dm Utils.lookupChatUsersWithJira(ticket.watchers),
+        text: """
+          A ticket you are watching is now ready for review.
+          #{assigneeText}
+        """
+        author: event.user
+        footer: disableDisclaimer
+        attachments: [ ticket.toAttachment no ]
+
     @robot.on "JiraWebhookTicketDone", (ticket, event) =>
       @adapter.dm Utils.lookupChatUsersWithJira(ticket.watchers),
         text: """

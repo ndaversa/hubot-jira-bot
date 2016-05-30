@@ -116,6 +116,9 @@ class Webhook
     ,
       keywords: "progress"
       name: "JiraWebhookTicketInProgress"
+    ,
+      keywords: "review reviewed"
+      name: "JiraWebhookTicketInReview"
     ]
     status = Utils.fuzzyFind item.toString.toLowerCase(), states, ['keywords']
     return @robot.logger.debug "#{event.issue.key}: Ignoring transition to '#{item.toString}'" unless status
