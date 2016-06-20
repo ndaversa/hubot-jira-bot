@@ -26,8 +26,8 @@ class Config
       password: process.env.HUBOT_JIRA_PASSWORD
       expand: "transitions"
       fields: ["issuetype", "status", "assignee", "reporter", "summary", "description", "labels", "project"]
-      mentionRegex: /(?:\[~([\w._]*)\])/i
-      mentionRegexGlobal: /(?:\[~([\w._]*)\])/gi
+      mentionRegex: /(?:\[~([\w._-]*)\])/i
+      mentionRegexGlobal: /(?:\[~([\w._-]*)\])/gi
   @jira.urlRegexBase = "#{Config.jira.url}/browse/".replace /[-\/\\^$*+?.()|[\]{}]/g, '\\$&'
   @jira.urlRegex = new RegExp "(?:#{Config.jira.urlRegexBase})((?:#{Config.projects.prefixes}-)\\d+)\\s*", "i"
   @jira.urlRegexGlobal = new RegExp "(?:#{Config.jira.urlRegexBase})((?:#{Config.projects.prefixes}-)\\d+)\\s*", "gi"
@@ -59,21 +59,21 @@ class Config
     regex: /`{1,3}([^]*?)`{1,3}/
 
   @mention:
-    regex: /(?:(?:^|\s+)@([\w._]*))/i
-    regexGlobal: /(?:(?:^|\s+)@([\w._]*))/gi
+    regex: /(?:(?:^|\s+)@([\w._-]*))/i
+    regexGlobal: /(?:(?:^|\s+)@([\w._-]*))/gi
 
   @rank:
     regex: new RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+)) rank (.*)", "i"
 
   @watch:
     notificationsRegex: /jira (allow|start|enable|disallow|disable|stop)( notifications)?/i
-    regex: new RegExp "^((?:#{Config.projects.prefixes}-)(?:\\d+)) (un)?watch(?: @?([\\w._]*))?", "i"
+    regex: new RegExp "^((?:#{Config.projects.prefixes}-)(?:\\d+)) (un)?watch(?: @?([\\w._-]*))?", "i"
 
   @subtask:
     regex: new RegExp "subtask\\s+((?:#{Config.projects.prefixes}-)(?:\\d+)) ([^]+)", "i"
 
   @assign:
-    regex: new RegExp "^((?:#{Config.projects.prefixes}-)(?:\\d+))(?: (un)?assign)? @?([\\w._]*)\\s*$", "i"
+    regex: new RegExp "^((?:#{Config.projects.prefixes}-)(?:\\d+))(?: (un)?assign)? @?([\\w._-]*)\\s*$", "i"
 
   @clone:
     regex: new RegExp "^((?:#{Config.projects.prefixes}-)(?:\\d+))\\s*(?:(?:>|clone(?:s)?(?:\\s+to)?)\\s*)(?:#)?(#{Config.projects.channels})", "i"
