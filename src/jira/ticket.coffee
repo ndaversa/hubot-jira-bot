@@ -53,6 +53,7 @@ class Ticket
       """
 
     color: result.color
+    type: "JiraTicketAttachment"
     author_name: @key
     author_link: "#{Config.jira.url}/browse/#{@key}"
     author_icon: if @fields.assignee? then @fields.assignee.avatarUrls["32x32"] else "https://slack.global.ssl.fastly.net/12d4/img/services/jira_128.png"
