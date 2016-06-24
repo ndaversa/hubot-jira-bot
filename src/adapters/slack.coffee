@@ -134,7 +134,7 @@ class Slack extends GenericAdapter
       oldest: ts
       inclusive: 1
       count: 1
-      token: Config.slack.token
+      token: Config.slack.api.token
 
     Utils.fetch("https://slack.com/api/#{endpoint}.history#{Utils.buildQueryString params}")
     .then (json) ->

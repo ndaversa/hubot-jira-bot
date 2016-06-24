@@ -38,6 +38,7 @@ class Config
 
   @slack:
     token: process.env.HUBOT_SLACK_TOKEN
+    api: token: process.env.HUBOT_SLACK_API_TOKEN
 
   @ticket:
     regex: new RegExp "(^|\\s)(" + Config.projects.prefixes + "-)(\\d+)\\b", "i"
