@@ -21,9 +21,13 @@
 #   HUBOT_JIRA_PRIORITIES_MAP [{"name":"Blocker","id":"1"},{"name":"Critical","id":"2"},{"name":"Major","id":"3"},{"name":"Minor","id":"4"},{"name":"Trivial","id":"5"}]
 #   HUBOT_GITHUB_TOKEN - Github Application Token
 #   HUBOT_GITHUB_ORG - Github Organization or Github User
-#
+#   HUBOT_JIRA_GITHUB_DISABLED - Set to true if you wish to disable github integration
+
 # Author:
 #   ndaversa
+
+# Contributions:
+#   sjakubowski
 
 _ = require "underscore"
 moment = require "moment"
@@ -102,11 +106,11 @@ class JiraBot
         _attachments.push ticket.toAttachment()
         ticket
       .then (ticket) ->
-        Github.PullRequests.fromKey ticket.key
+        Github.PullRequests.fromKey ticket.key unless Config.github.disabled
       .then (prs) ->
-        prs.toAttachment()
+        prs?.toAttachment()
       .then (attachments) ->
-        _attachments.push a for a in attachments
+        _attachments.push a for a in attachments if attachments
         _attachments
     ).then (attachments) =>
       @send msg, attachments: _(attachments).flatten()
