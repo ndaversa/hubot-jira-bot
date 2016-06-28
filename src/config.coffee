@@ -37,8 +37,9 @@ class Config
     token: process.env.HUBOT_GITHUB_TOKEN
 
   @slack:
+    verification: token: process.env.HUBOT_SLACK_VERIFICATION_TOKEN
     token: process.env.HUBOT_SLACK_TOKEN
-    api: token: process.env.HUBOT_SLACK_API_TOKEN
+    api: token: process.env.HUBOT_SLACK_API_TOKEN or process.env.HUBOT_SLACK_TOKEN
 
   @ticket:
     regex: new RegExp "(^|\\s)(" + Config.projects.prefixes + "-)(\\d+)\\b", "i"

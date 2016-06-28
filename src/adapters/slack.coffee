@@ -8,6 +8,18 @@ GenericAdapter = require "./generic"
 class Slack extends GenericAdapter
   constructor: (@robot) ->
     super @robot
+
+    @robot.router.post "/hubot/slack-events", (req, res) =>
+      return unless req.body?
+      try
+        payload = JSON.parse req.body.payload
+        return unless payload.token is Config.slack.verification.token
+      catch e
+        return
+
+      response = @onButtonActions payload
+      res.json response
+
     # Since the slack client used by hubot-slack has not yet been updated
     # to the latest version, we do not get events for reactions.
     # Also there doesn't seem to be a better way to get a reference to
@@ -43,6 +55,13 @@ class Slack extends GenericAdapter
       payload.text = message
     else
       payload = _(payload).extend message
+
+    if Config.slack.verification.token and payload.attachments?.length > 0
+      attachments = []
+      for ja in payload.attachments
+        attachments.push ja
+        attachments.push @ticketButtonsAttachment ja if ja.type is "JiraTicketAttachment"
+      payload.attachments = attachments
     rc = @robot.adapter.customMessage payload
 
     # Could not find existing conversation
@@ -117,6 +136,46 @@ class Slack extends GenericAdapter
               room: msg.item.channel
               user: msg.user
 
+  onButtonActions: (payload) ->
+    key = payload.callback_id
+    user = payload.user
+    channel = payload.channel
+    msg = payload.original_message
+
+    for action in payload.actions
+      switch action.name
+        when "rank"
+          Jira.Rank.forTicketKeyByDirection key, "up",
+            robot: @robot
+            message:
+              room: channel
+              user: user
+          msg.attachments.push text: "<@#{user.id}|#{user.name}> ranked this ticket to the top"
+        when "watch"
+          Jira.Watch.forTicketKeyForPerson key, user.name,
+            robot: @robot
+            message:
+              room: channel
+              user: user
+          msg.attachments.push text: "<@#{user.id}|#{user.name}> is now watching this ticket"
+        when "assign"
+          Jira.Assign.forTicketKeyToPerson key, user.name,
+            robot: @robot
+            message:
+              room: channel
+              user: user
+          msg.attachments.push text: "<@#{user.id}|#{user.name}> is now assigned to this ticket"
+        when "devready", "inprogress"
+          result = Utils.fuzzyFind action.value, Config.maps.transitions, ['jira']
+          if result
+            Jira.Transition.forTicketKeyToState key, result.name,
+              robot: @robot
+              message:
+                room: channel
+                user: user
+            msg.attachments.push text: "<@#{user.id}|#{user.name}> transitioned this ticket to #{result.jira}"
+    return msg
+
   getTicketKeyInChannelByTs: (channel, ts) ->
     switch channel[0]
       when "G"
@@ -150,5 +209,38 @@ class Slack extends GenericAdapter
 
   getPermalink: (msg) ->
     "https://#{msg.robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}"
+
+  ticketButtonsAttachment: (jiraAttachment) ->
+    fallback: "Unable to display quick action buttons"
+    attachment_type: "default"
+    callback_id: jiraAttachment.author_name
+    color: jiraAttachment.color
+    actions: [
+      name: "watch"
+      text: "Watch"
+      type: "button"
+      value: "watch"
+      style: "primary"
+    ,
+      name: "assign"
+      text: "Assign to me"
+      type: "button"
+      value: "assign"
+    ,
+      name: "devready"
+      text: "Dev Ready"
+      type: "button"
+      value: "selected"
+    ,
+      name: "inprogress"
+      text: "In Progress"
+      type: "button"
+      value: "progress"
+    ,
+      name: "rank"
+      text: "Rank Top"
+      type: "button"
+      value: "top"
+    ]
 
 module.exports = Slack
