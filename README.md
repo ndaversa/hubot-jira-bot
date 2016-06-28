@@ -21,7 +21,7 @@ assigned to a ticket. Also, notifications for assignments, mentions and watched 
 - `HUBOT_JIRA_PRIORITIES_MAP` `[{"name":"Blocker","id":"1"},{"name":"Critical","id":"2"},{"name":"Major","id":"3"},{"name":"Minor","id":"4"},{"name":"Trivial","id":"5"}]`
 - `HUBOT_GITHUB_TOKEN` - Github Application Token
 - `HUBOT_GITHUB_ORG` - Github Organization or Github User
-- `HUBOT_JIRA_GITHUB_DISABLED` - Set to 'true' if you don't want to search github, and only use JIRA
+- `HUBOT_JIRA_GITHUB_DISABLED` - Set to true if you wish to disable github integration
 
 Note that `HUBOT_JIRA_USERNAME` should be the JIRA username, this is
 not necessarily the username used if you log in via the web.  To

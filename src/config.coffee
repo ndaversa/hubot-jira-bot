@@ -33,6 +33,7 @@ class Config
   @jira.urlRegexGlobal = new RegExp "(?:#{Config.jira.urlRegexBase})((?:#{Config.projects.prefixes}-)\\d+)\\s*", "gi"
 
   @github:
+    disabled: !!process.env.HUBOT_JIRA_GITHUB_DISABLED
     organization: process.env.HUBOT_GITHUB_ORG
     token: process.env.HUBOT_GITHUB_TOKEN
 
