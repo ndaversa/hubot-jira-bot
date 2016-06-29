@@ -17,8 +17,8 @@ class Slack extends GenericAdapter
       catch e
         return
 
-      response = @onButtonActions payload
-      res.json response
+      @onButtonActions(payload).then ->
+        res.json payload.original_message
 
     # Since the slack client used by hubot-slack has not yet been updated
     # to the latest version, we do not get events for reactions.
@@ -137,44 +137,50 @@ class Slack extends GenericAdapter
               user: msg.user
 
   onButtonActions: (payload) ->
-    key = payload.callback_id
-    user = payload.user
-    channel = payload.channel
-    msg = payload.original_message
+    Promise.all payload.actions.map (action) => @handleButtonAction payload, action
 
-    for action in payload.actions
+  handleButtonAction: (payload, action) ->
+    return new Promise (resolve, reject) =>
+      key = payload.callback_id
+      user = payload.user
+      msg = payload.original_message
+      envelope =
+        robot: emit: -> #Discard emitted messages, slack attachments are enough communication
+        message: user: user
+
       switch action.name
         when "rank"
-          Jira.Rank.forTicketKeyByDirection key, "up",
-            robot: @robot
-            message:
-              room: channel
-              user: user
+          Jira.Rank.forTicketKeyByDirection key, "up", envelope
           msg.attachments.push text: "<@#{user.id}|#{user.name}> ranked this ticket to the top"
+          resolve()
         when "watch"
-          Jira.Watch.forTicketKeyForPerson key, user.name,
-            robot: @robot
-            message:
-              room: channel
-              user: user
-          msg.attachments.push text: "<@#{user.id}|#{user.name}> is now watching this ticket"
+          Jira.Create.fromKey(key)
+          .then (ticket) =>
+            watchers = Utils.lookupChatUsersWithJira ticket.watchers
+            if _(watchers).findWhere(id: user.id)
+              msg.attachments.push text: "<@#{user.id}|#{user.name}> has stopped watching this ticket"
+              Jira.Watch.forTicketKeyRemovePerson key, null, envelope
+            else
+              msg.attachments.push text: "<@#{user.id}|#{user.name}> is now watching this ticket"
+              Jira.Watch.forTicketKeyForPerson key, user.name, envelope
+            resolve()
         when "assign"
-          Jira.Assign.forTicketKeyToPerson key, user.name,
-            robot: @robot
-            message:
-              room: channel
-              user: user
-          msg.attachments.push text: "<@#{user.id}|#{user.name}> is now assigned to this ticket"
+          Jira.Create.fromKey(key)
+          .then (ticket) =>
+            assignee = Utils.lookupChatUserWithJira ticket.fields.assignee
+            if assignee and assignee.id is user.id
+              Jira.Assign.forTicketKeyToUnassigned key, envelope
+              msg.attachments.push text: "<@#{user.id}|#{user.name}> has unassigned themself"
+            else
+              Jira.Assign.forTicketKeyToPerson key, user.name, envelope
+              msg.attachments.push text: "<@#{user.id}|#{user.name}> is now assigned to this ticket"
+            resolve()
         when "devready", "inprogress"
           result = Utils.fuzzyFind action.value, Config.maps.transitions, ['jira']
           if result
-            Jira.Transition.forTicketKeyToState key, result.name,
-              robot: @robot
-              message:
-                room: channel
-                user: user
             msg.attachments.push text: "<@#{user.id}|#{user.name}> transitioned this ticket to #{result.jira}"
-    return msg
+            Jira.Transition.forTicketKeyToState key, result.name, envelope
+          resolve()
 
   getTicketKeyInChannelByTs: (channel, ts) ->
     switch channel[0]
