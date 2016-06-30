@@ -438,8 +438,8 @@ class JiraBot
     @robot.respond Config.commands.regex, (msg) =>
       [ __, project, command, summary ] = msg.match
       room = project or msg.message.room
-      project = Config.maps.projects[room]
-      type = Config.maps.types[command]
+      project = Config.maps.projects[room.toLowerCase()]
+      type = Config.maps.types[command.toLowerCase()]
 
       unless project
         channels = []
