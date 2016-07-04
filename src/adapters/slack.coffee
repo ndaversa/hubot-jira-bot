@@ -180,13 +180,16 @@ class Slack extends GenericAdapter
               msg.attachments.push
                 text: "<@#{user.id}|#{user.name}> is now assigned to this ticket"
             resolve()
-        when "devready", "inprogress", "review", "done"
+        else
           result = Utils.fuzzyFind action.value, Config.maps.transitions, ['jira']
           if result
             msg.attachments.push @buttonAttachmentsForState action.name,
               key: key
               text: "<@#{user.id}|#{user.name}> transitioned this ticket to #{result.jira}"
             Jira.Transition.forTicketKeyToState key, result.name, envelope
+          else
+            msg.attachments.push
+              text: "Unable to to process #{action.name}"
           resolve()
 
   getTicketKeyInChannelByTs: (channel, ts) ->
@@ -224,63 +227,20 @@ class Slack extends GenericAdapter
     "https://#{msg.robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}"
 
   buttonAttachmentsForState: (state="mention", details) ->
-    watch =
-      name: "watch"
-      text: "Watch"
-      type: "button"
-      value: "watch"
-      style: "primary"
-
-    assign =
-      name: "assign"
-      text: "Assign to me"
-      type: "button"
-      value: "assign"
-
-    devready =
-      name: "devready"
-      text: "Dev Ready"
-      type: "button"
-      value: "selected"
-
-    inprogress =
-      name: "inprogress"
-      text: "In Progress"
-      type: "button"
-      value: "progress"
-
-    rank =
-      name: "rank"
-      text: "Rank Top"
-      type: "button"
-      value: "top"
-
-    review =
-      name: "review"
-      text: "Review"
-      type: "button"
-      value: "review"
-
-    done =
-      name: "done"
-      text: "Done"
-      type: "button"
-      style: "primary"
-      value: "done"
-
-    switch state
-      when "inprogress"
-        actions = [ review, done ]
-      when "review"
-        actions = [ done ]
-      when "done"
-        actions = [ devready, inprogress ]
-      when "mention"
-        actions = [ watch, assign, devready, inprogress, rank ]
+    key = details.author_name or details.key
+    return {} unless key and key.length > 0
+    project = key.split("-")[0]
+    return {} unless project
+    buttons = Config.slack.buttons
+    return {} unless buttons
+    map = Config.slack.project.button.state.map[project] or Config.slack.project.button.state.map.default
+    return {} unless map
+    actions = []
+    actions.push buttons[button] for button in map[state]
 
     fallback: "Unable to display quick action buttons"
     attachment_type: "default"
-    callback_id: details.author_name or details.key
+    callback_id: key
     color: details.color
     actions: actions
     text: details.text
