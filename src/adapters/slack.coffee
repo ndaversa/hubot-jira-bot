@@ -180,7 +180,7 @@ class Slack extends GenericAdapter
               msg.attachments.push
                 text: "<@#{user.id}|#{user.name}> is now assigned to this ticket"
             resolve()
-        when "devready", "inprogress", "done"
+        when "devready", "inprogress", "review", "done"
           result = Utils.fuzzyFind action.value, Config.maps.transitions, ['jira']
           if result
             msg.attachments.push @buttonAttachmentsForState action.name,
@@ -255,6 +255,12 @@ class Slack extends GenericAdapter
       type: "button"
       value: "top"
 
+    review =
+      name: "review"
+      text: "Review"
+      type: "button"
+      value: "review"
+
     done =
       name: "done"
       text: "Done"
@@ -264,6 +270,8 @@ class Slack extends GenericAdapter
 
     switch state
       when "inprogress"
+        actions = [ review, done ]
+      when "review"
         actions = [ done ]
       when "done"
         actions = [ devready, inprogress ]
