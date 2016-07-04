@@ -60,7 +60,7 @@ class Slack extends GenericAdapter
       attachments = []
       for ja in payload.attachments
         attachments.push ja
-        attachments.push @ticketButtonsAttachment ja if ja.type is "JiraTicketAttachment"
+        attachments.push @buttonAttachmentsForState "mention", ja if ja.type is "JiraTicketAttachment"
       payload.attachments = attachments
     rc = @robot.adapter.customMessage payload
 
@@ -151,17 +151,20 @@ class Slack extends GenericAdapter
       switch action.name
         when "rank"
           Jira.Rank.forTicketKeyByDirection key, "up", envelope
-          msg.attachments.push text: "<@#{user.id}|#{user.name}> ranked this ticket to the top"
+          msg.attachments.push
+            text: "<@#{user.id}|#{user.name}> ranked this ticket to the top"
           resolve()
         when "watch"
           Jira.Create.fromKey(key)
           .then (ticket) =>
             watchers = Utils.lookupChatUsersWithJira ticket.watchers
             if _(watchers).findWhere(id: user.id)
-              msg.attachments.push text: "<@#{user.id}|#{user.name}> has stopped watching this ticket"
+              msg.attachments.push
+                text: "<@#{user.id}|#{user.name}> has stopped watching this ticket"
               Jira.Watch.forTicketKeyRemovePerson key, null, envelope
             else
-              msg.attachments.push text: "<@#{user.id}|#{user.name}> is now watching this ticket"
+              msg.attachments.push
+                text: "<@#{user.id}|#{user.name}> is now watching this ticket"
               Jira.Watch.forTicketKeyForPerson key, user.name, envelope
             resolve()
         when "assign"
@@ -170,15 +173,19 @@ class Slack extends GenericAdapter
             assignee = Utils.lookupChatUserWithJira ticket.fields.assignee
             if assignee and assignee.id is user.id
               Jira.Assign.forTicketKeyToUnassigned key, envelope
-              msg.attachments.push text: "<@#{user.id}|#{user.name}> has unassigned themself"
+              msg.attachments.push
+                text: "<@#{user.id}|#{user.name}> has unassigned themself"
             else
               Jira.Assign.forTicketKeyToPerson key, user.name, envelope
-              msg.attachments.push text: "<@#{user.id}|#{user.name}> is now assigned to this ticket"
+              msg.attachments.push
+                text: "<@#{user.id}|#{user.name}> is now assigned to this ticket"
             resolve()
-        when "devready", "inprogress"
+        when "devready", "inprogress", "done"
           result = Utils.fuzzyFind action.value, Config.maps.transitions, ['jira']
           if result
-            msg.attachments.push text: "<@#{user.id}|#{user.name}> transitioned this ticket to #{result.jira}"
+            msg.attachments.push @buttonAttachmentsForState action.name,
+              key: key
+              text: "<@#{user.id}|#{user.name}> transitioned this ticket to #{result.jira}"
             Jira.Transition.forTicketKeyToState key, result.name, envelope
           resolve()
 
@@ -216,37 +223,58 @@ class Slack extends GenericAdapter
   getPermalink: (msg) ->
     "https://#{msg.robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}"
 
-  ticketButtonsAttachment: (jiraAttachment) ->
-    fallback: "Unable to display quick action buttons"
-    attachment_type: "default"
-    callback_id: jiraAttachment.author_name
-    color: jiraAttachment.color
-    actions: [
+  buttonAttachmentsForState: (state="mention", details) ->
+    watch =
       name: "watch"
       text: "Watch"
       type: "button"
       value: "watch"
       style: "primary"
-    ,
+
+    assign =
       name: "assign"
       text: "Assign to me"
       type: "button"
       value: "assign"
-    ,
+
+    devready =
       name: "devready"
       text: "Dev Ready"
       type: "button"
       value: "selected"
-    ,
+
+    inprogress =
       name: "inprogress"
       text: "In Progress"
       type: "button"
       value: "progress"
-    ,
+
+    rank =
       name: "rank"
       text: "Rank Top"
       type: "button"
       value: "top"
-    ]
+
+    done =
+      name: "done"
+      text: "Done"
+      type: "button"
+      style: "primary"
+      value: "done"
+
+    switch state
+      when "inprogress"
+        actions = [ done ]
+      when "done"
+        actions = [ devready, inprogress ]
+      when "mention"
+        actions = [ watch, assign, devready, inprogress, rank ]
+
+    fallback: "Unable to display quick action buttons"
+    attachment_type: "default"
+    callback_id: details.author_name or details.key
+    color: details.color
+    actions: actions
+    text: details.text
 
 module.exports = Slack
