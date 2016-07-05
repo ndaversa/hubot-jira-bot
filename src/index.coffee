@@ -55,7 +55,7 @@ class JiraBot
     room = context.message.room
 
     removals = []
-    for attachment in message.attachments
+    for attachment in message.attachments when attachment and attachment.type is "JiraTicketAttachment"
       ticket = attachment.author_name?.trim().toUpperCase()
       continue unless Config.ticket.regex.test ticket
 
@@ -211,22 +211,30 @@ class JiraBot
       @prepareResponseForJiraTickets msg
 
     #Create
-    @robot.on "JiraTicketCreated", (ticket, room) =>
-      @send message: room: room,
+    @robot.on "JiraTicketCreated", (details) =>
+      @send message: room: details.room,
         text: "Ticket created"
-        attachments: [ ticket.toAttachment no ]
+        attachments: [
+          details.ticket.toAttachment no
+          details.assignee
+          details.transition
+        ]
 
     @robot.on "JiraTicketCreationFailed", (error, room) =>
       robot.logger.error error.stack
       @send message: room: room, "Unable to create ticket #{error}"
 
     #Created in another room
-    @robot.on "JiraTicketCreatedElsewhere", (ticket, msg) =>
-      channel = @robot.adapter.client.getChannelGroupOrDMByName msg.message.room
-      for r in Utils.lookupRoomsForProject ticket.fields.project.key
+    @robot.on "JiraTicketCreatedElsewhere", (details) =>
+      channel = @robot.adapter.client.getChannelGroupOrDMByName details.room
+      for r in Utils.lookupRoomsForProject details.ticket.fields.project.key
         @send message: room: r,
-          text: "Ticket created in <##{channel.id}|#{channel.name}> by <@#{msg.message.user.id}>"
-          attachments: [ ticket.toAttachment no ]
+          text: "Ticket created in <##{channel.id}|#{channel.name}> by <@#{details.user.id}>"
+          attachments: [
+            details.ticket.toAttachment no
+            details.assignee
+            details.transition
+          ]
 
     #Clone
     @robot.on "JiraTicketCloned", (ticket, room, clone, msg) =>

@@ -5,7 +5,7 @@ Create = require "./create"
 Utils = require "../utils"
 
 class Clone
-  @fromTicketKeyToProject: (key, project, channel, msg) ->
+  @fromTicketKeyToProject: (key, project, channel, msg, emit=yes) ->
     original = null
     cloned = null
     Create.fromKey(key)
@@ -49,9 +49,12 @@ class Clone
               #{Utils.JiraBot.adapter.getPermalink msg}
             """
     .then ->
-      Utils.robot.emit "JiraTicketCreated", cloned, msg.message.room
-      Utils.robot.emit "JiraTicketCloned", cloned, channel, key, msg if msg.message.room isnt channel
+      if emit
+        Utils.robot.emit "JiraTicketCreated",
+          ticket: cloned
+          room: msg.message.room
+      Utils.robot.emit "JiraTicketCloned", cloned, channel, key, msg if emit and msg.message.room isnt channel
     .catch (error) ->
-      Utils.robot.emit "JiraTicketCloneFailed", error, key, msg.message.room
+      Utils.robot.emit "JiraTicketCloneFailed", error, key, msg.message.room if emit
 
 module.exports = Clone
