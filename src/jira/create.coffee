@@ -25,7 +25,7 @@ class Create
 
     User.withEmail(msg.message.user.email_address)
     .then (reporter) ->
-      labels = []
+      labels = [ msg.message.room ]
       description = summary.match(Config.quote.regex)[1] if Config.quote.regex.test(summary)
       summary = summary.replace(Config.quote.regex, "") if description
 
