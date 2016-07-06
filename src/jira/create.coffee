@@ -14,20 +14,23 @@ class Create
       body: JSON.stringify json
 
   @with: (project, type, summary, msg, fields, emit=yes) ->
-    if Config.maps.transitions
-      if Config.transitions.shouldRegex.test(summary)
-        [ __, toState] =  summary.match Config.transitions.shouldRegex
-      summary = summary.replace(Config.transitions.shouldRegex, "") if toState
-
-    if Config.mention.regex.test summary
-      assignee = summary.match(Config.mention.regex)[1]
-      summary = summary.replace Config.mention.regex, ""
+    toState = null
+    assignee = null
 
     User.withEmail(msg.message.user.email_address)
     .then (reporter) ->
       labels = [ msg.message.room ]
       description = summary.match(Config.quote.regex)[1] if Config.quote.regex.test(summary)
       summary = summary.replace(Config.quote.regex, "") if description
+
+      if Config.maps.transitions
+        if Config.transitions.shouldRegex.test(summary)
+          [ __, toState] =  summary.match Config.transitions.shouldRegex
+        summary = summary.replace(Config.transitions.shouldRegex, "") if toState
+
+      if Config.mention.regex.test summary
+        assignee = summary.match(Config.mention.regex)[1]
+        summary = summary.replace Config.mention.regex, ""
 
       if Config.labels.regex.test summary
         labels = (summary.match(Config.labels.regex).map((label) -> label.replace('#', '').trim())).concat(labels)
@@ -58,11 +61,15 @@ class Create
     .then (json) ->
       Create.fromKey(json.key)
       .then (ticket) ->
-        Promise.all [
+        Promise.all([
           Transition.forTicketToState ticket, toState, msg, no, no if toState
           Assign.forTicketToPerson ticket, assignee, msg, no, no if assignee
           ticket
-        ]
+        ])
+        .catch (error) ->
+          Utils.robot.logger.error error
+          [ undefined, text:error, ticket]
+
       .then (results) ->
         [ transition, assignee, ticket ] = results
         roomProject = Config.maps.projects[msg.message.room]
