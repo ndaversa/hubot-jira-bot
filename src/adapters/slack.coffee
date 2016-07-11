@@ -13,6 +13,7 @@ class Slack extends GenericAdapter
       try
         payload = JSON.parse req.body.payload
         return unless payload.token is Config.slack.verification.token
+        return @robot.emit "SlackEvents", payload, res unless @shouldJiraBotHandle payload
       catch e
         @robot.logger.debug e
         return
@@ -45,6 +46,14 @@ class Slack extends GenericAdapter
       text = payload.text
       text += "\n#{a.fallback}" for a in payload.attachments
       @robot.adapter.send context.message, text
+
+  shouldJiraBotHandle: (msg) ->
+    matches = msg.callback_id.match Config.ticket.regexGlobal
+
+    if matches and matches[0]
+      return yes
+    else
+      return no
 
   onButtonActions: (payload) ->
     Promise.all payload.actions.map (action) => @handleButtonAction payload, action

@@ -69,7 +69,6 @@ class Create
         .catch (error) ->
           Utils.robot.logger.error error
           [ undefined, text:error, ticket]
-
       .then (results) ->
         [ transition, assignee, ticket ] = results
         roomProject = Config.maps.projects[msg.message.room]
