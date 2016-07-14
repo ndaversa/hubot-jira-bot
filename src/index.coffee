@@ -71,9 +71,13 @@ class JiraBot
 
   matchJiraTicket: (message) ->
     if message.match?
-      matches = message.match(Config.ticket.regexGlobal)
+      matches = message.match Config.ticket.regexGlobal
+      unless matches and matches[0]
+        urlMatch = message.match Config.jira.urlRegex
+        if urlMatch and urlMatch[1]
+          matches = [ urlMatch[1] ]
     else if message.message?.rawText?.match?
-      matches = message.message.rawText.match(Config.ticket.regexGlobal)
+      matches = message.message.rawText.match Config.ticket.regexGlobal
 
     if matches and matches[0]
       return matches
@@ -82,7 +86,7 @@ class JiraBot
         attachments = message.message.rawMessage.attachments
         for attachment in attachments
           if attachment.text?
-            matches = attachment.text.match(Config.ticket.regexGlobal)
+            matches = attachment.text.match Config.ticket.regexGlobal
             if matches and matches[0]
               return matches
     return false
