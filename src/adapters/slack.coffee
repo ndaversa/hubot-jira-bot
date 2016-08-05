@@ -200,5 +200,7 @@ class Slack extends GenericAdapter
         , no
       else
         create()
+    .catch ->
+      create()
 
 module.exports = Slack
