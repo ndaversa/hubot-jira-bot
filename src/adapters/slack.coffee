@@ -8,6 +8,7 @@ GenericAdapter = require "./generic"
 class Slack extends GenericAdapter
   constructor: (@robot) ->
     super @robot
+    @queue = {}
 
     @robot.router.post "/hubot/slack-events", (req, res) =>
       try
@@ -48,9 +49,12 @@ class Slack extends GenericAdapter
       @robot.adapter.send context.message, text
 
   shouldJiraBotHandle: (msg) ->
-    matches = msg.callback_id.match Config.ticket.regexGlobal
+    id = msg.callback_id
+    matches = id.match Config.ticket.regexGlobal
 
     if matches and matches[0]
+      return yes
+    else if ~id.indexOf "JiraBotDuplicate"
       return yes
     else
       return no
@@ -58,7 +62,27 @@ class Slack extends GenericAdapter
   onButtonActions: (payload) ->
     Promise.all payload.actions.map (action) => @handleButtonAction payload, action
 
+  handleDuplicateReponse: (payload, action) ->
+    id = payload.callback_id.split(":")[1]
+    msg = payload.original_message
+    msg.attachments.pop()
+    if item = @queue[id]
+      clearTimeout item.timer
+      delete @queue[id]
+
+      if action.name is "create" and action.value is "yes"
+        msg.attachments.push text: "Creating ticket..."
+        item.action()
+
+      if action.name is "create" and action.value is "no"
+        msg.attachments.push text: "Ticket creation has been cancelled"
+
+    return Promise.resolve()
+
   handleButtonAction: (payload, action) ->
+    key = payload.callback_id
+    return @handleDuplicateReponse payload, action if ~key.indexOf "JiraBotDuplicate"
+
     return new Promise (resolve, reject) =>
       key = payload.callback_id
       user = payload.user
@@ -130,5 +154,51 @@ class Slack extends GenericAdapter
     color: details.color
     actions: actions
     text: details.text
+
+  detectForDuplicates: (project, type, summary, msg) ->
+    create = -> Jira.Create.with project, type, summary, msg
+
+    Jira.Search.withQueryForProject(summary, project, msg, 20)
+    .then (results) =>
+      if duplicate = Utils.detectPossibleDuplicate summary, results.tickets
+        now = Date.now()
+        @queue[now] =
+          timer: setTimeout =>
+            create()
+            delete @queue[now]
+          , Config.duplicates.timeout
+          action: create
+
+        attachments = [ duplicate.toAttachment no ]
+        attachments.push
+          fallback: "Unable to display quick action buttons"
+          attachment_type: "default"
+          callback_id: "JiraBotDuplicate:#{now}"
+          text: """
+            There are potential duplicates of this issue.
+            If you do not respond, the ticket will be created in #{Config.duplicates.timeout/1000} seconds"
+
+            What would you like to do?
+          """
+          actions: [
+            name: "create"
+            text: "Create anyways"
+            style: "primary"
+            type: "button"
+            value: "yes"
+          ,
+            name: "create"
+            text: "Do not create"
+            style: "danger"
+            type: "button"
+            value: "no"
+          ]
+
+        @send msg,
+          text: results.text
+          attachments: attachments
+        , no
+      else
+        create()
 
 module.exports = Slack

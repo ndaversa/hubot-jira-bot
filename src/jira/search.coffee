@@ -4,7 +4,7 @@ Utils = require "../utils"
 
 class Search
 
-  @withQueryForProject: (query, project, msg) ->
+  @withQueryForProject: (query, project, msg, max=5) ->
     labels = []
     if Config.labels.regex.test query
       labels = (query.match(Config.labels.regex).map((label) -> label.replace('#', '').trim())).concat(labels)
@@ -12,7 +12,7 @@ class Search
 
     jql = if query.length > 0 then "text ~ \"#{query}\"" else ""
     noResults = "No results for #{query}"
-    found = "Found __xx__ issues containing `#{query}`"
+    found = "Found <#{Config.jira.url}/secure/IssueNavigator.jspa?jqlQuery=__JQL__&runQuery=true|__xx__ issues> containing `#{query}`"
 
     if project
       jql += " and " if jql.length > 0
@@ -26,15 +26,21 @@ class Search
       noResults += " with labels `#{labels.join ', '}`"
       found += " with labels `#{labels.join ', '}`"
 
+    found.replace "__JQL__", encodeURIComponent jql
     Utils.fetch "#{Config.jira.url}/rest/api/2/search",
       method: "POST"
       body: JSON.stringify
         jql: jql
         startAt: 0
-        maxResults: 5
+        maxResults: max
         fields: Config.jira.fields
     .then (json) ->
-      text: if json.issues.length > 0 then found.replace "__xx__", json.total else noResults
+      if json.issues.length > 0
+        text = found.replace("__xx__", json.total).replace "__JQL__", encodeURIComponent jql
+      else
+        text = noResults
+
+      text: text
       tickets: (new Ticket issue for issue in json.issues)
 
 module.exports = Search

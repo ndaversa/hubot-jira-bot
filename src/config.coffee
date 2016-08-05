@@ -3,6 +3,7 @@
 #   HUBOT_GITHUB_TOKEN - Github Application Token
 #   HUBOT_JIRA_GITHUB_DISABLED - Set to true if you wish to disable github integration
 #   HUBOT_JIRA_PASSWORD
+#   HUBOT_JIRA_DUPLICATE_DETECTION - Set to true if wish to detect duplicates when creating new issues
 #   HUBOT_JIRA_PRIORITIES_MAP [{"name":"Blocker","id":"1"},{"name":"Critical","id":"2"},{"name":"Major","id":"3"},{"name":"Minor","id":"4"},{"name":"Trivial","id":"5"}]
 #   HUBOT_JIRA_PROJECTS_MAP  {"web":"WEB","android":"AN","ios":"IOS","platform":"PLAT"}
 #   HUBOT_JIRA_TRANSITIONS_MAP [{"name":"triage","jira":"Triage"},{"name":"icebox","jira":"Icebox"},{"name":"backlog","jira":"Backlog"},{"name":"devready","jira":"Selected for Development"},{"name":"inprogress","jira":"In Progress"},{"name":"design","jira":"Design Triage"}]
@@ -17,6 +18,10 @@ class Config
   @cache:
     default: expiry: 60*1000 # 1 minute
     mention: expiry: 5*60*1000 # 5 minutes
+
+  @duplicates:
+    detection: !!process.env.HUBOT_JIRA_DUPLICATE_DETECTION and process.env.HUBOT_SLACK_BUTTONS
+    timeout: 30*1000 # 30 seconds
 
   @maps:
     projects: JSON.parse process.env.HUBOT_JIRA_PROJECTS_MAP

@@ -74,6 +74,15 @@ class Utils
     return result[0] if result?.length is 1
     return null
 
+  @detectPossibleDuplicate: (summary, tickets) ->
+    t = new Fuse tickets,
+      keys: ['fields.summary']
+      shouldSort: yes
+      verbose: no
+      threshold: 0.6
+
+    return _(t.search summary).first()
+
   @lookupUserWithGithub: (github) ->
     return Promise.resolve() unless github
 

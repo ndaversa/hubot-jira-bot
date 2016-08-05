@@ -448,7 +448,10 @@ class JiraBot
           channels.push " <\##{channel.id}|#{channel.name}>" if channel
         return msg.reply "#{type} must be submitted in one of the following project channels: #{channels}"
 
-      Jira.Create.with project, type, summary, msg
+      if Config.duplicates.detection and @adapter.detectForDuplicates?
+        @adapter.detectForDuplicates project, type, summary, msg
+      else
+        Jira.Create.with project, type, summary, msg
 
     #Mention ticket by url
     @robot.hear Config.jira.urlRegexGlobal, (msg) =>
