@@ -176,7 +176,7 @@ class Slack extends GenericAdapter
           callback_id: "JiraBotDuplicate:#{now}"
           text: """
             There are potential duplicates of this issue.
-            If you do not respond, the ticket will be created in #{Config.duplicates.timeout/1000} seconds"
+            If you do not respond, the ticket will be created in #{Config.duplicates.timeout/1000} seconds
 
             What would you like to do?
           """
