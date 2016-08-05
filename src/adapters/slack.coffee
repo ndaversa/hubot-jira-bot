@@ -157,6 +157,7 @@ class Slack extends GenericAdapter
 
   detectForDuplicates: (project, type, summary, msg) ->
     create = -> Jira.Create.with project, type, summary, msg
+    { summary } = Utils.extract.all summary
 
     Jira.Search.withQueryForProject(summary, project, msg, 20)
     .then (results) =>
