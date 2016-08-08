@@ -131,7 +131,7 @@ class Utils
       [summary, labels] = Utils.extract.labels summary
       [summary, priority] = Utils.extract.priority summary
       summary = summary.trim()
-      { summary, description, toState, assignee, labels, priority}
+      { summary, description, toState, assignee, labels, priority }
 
     description: (summary) ->
       description = summary.match(Config.quote.regex)[1] if Config.quote.regex.test(summary)
