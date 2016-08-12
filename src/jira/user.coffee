@@ -1,3 +1,5 @@
+_ = require "underscore" 
+
 Config = require "../config"
 Utils = require "../utils"
 
@@ -5,8 +7,8 @@ class User
 
   @withEmail: (email) ->
     Utils.fetch("#{Config.jira.url}/rest/api/2/user/search?username=#{email}")
-    .then (user) ->
-      jiraUser = user[0] if user and user.length is 1
+    .then (users) ->
+      jiraUser = _(users).findWhere emailAddress: email if users and users.length > 0
       throw "Cannot find jira user with #{email}, trying myself" unless jiraUser
       jiraUser
     .catch (error) ->
