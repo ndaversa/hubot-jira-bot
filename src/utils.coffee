@@ -156,6 +156,9 @@ class Utils
       if Config.labels.regex.test summary
         labels = (summary.match(Config.labels.regex).map((label) -> label.replace('#', '').trim())).concat(labels)
         summary = summary.replace Config.labels.regex, ""
+      if Config.labels.slackChannelRegexGlobal.test summary
+        labels = (summary.match(Config.labels.slackChannelRegexGlobal).map((label) -> label.replace(Config.labels.slackChannelRegex, "$1"))).concat(labels)
+        summary = summary.replace Config.labels.slackChannelRegexGlobal, ""
       return [summary, labels]
 
     priority: (summary) ->

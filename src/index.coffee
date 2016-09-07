@@ -436,7 +436,8 @@ class JiraBot
 
     #Create
     @robot.respond Config.commands.regex, (msg) =>
-      [ __, project, command, summary ] = msg.match
+      message = msg.message.rawText or msg.message.text
+      [ __, project, command, summary ] = message.match Config.commands.regex
       room = project or msg.message.room
       project = Config.maps.projects[room.toLowerCase()]
       type = Config.maps.types[command.toLowerCase()]
