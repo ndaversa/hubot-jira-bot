@@ -45,6 +45,8 @@ class Utils
 
   @lookupChatUser: (username) ->
     users = Utils.robot.brain.users()
+    return users[username] if users[username] #Note: if get the user id instead of username
+
     result = (users[user] for user of users when users[user].name is username)
     if result?.length is 1
       return result[0]

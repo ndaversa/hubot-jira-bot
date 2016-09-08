@@ -77,8 +77,8 @@ class Config
 
   @transitions:
     if Config.maps.transitions
-      regex: new RegExp "^((?:#{Config.projects.prefixes}-)(?:\\d+))\\s+(?:to\\s+|>\\s?)(#{(Config.maps.transitions.map (t) -> t.name).join "|"})", "i"
-      shouldRegex: new RegExp "\\s+>\\s?(#{(Config.maps.transitions.map (t) -> t.name).join "|"})", "i"
+      regex: new RegExp "^((?:#{Config.projects.prefixes}-)(?:\\d+))\\s+(?:to\\s+|>\\s?|&gt;\\s?)(#{(Config.maps.transitions.map (t) -> t.name).join "|"})", "i"
+      shouldRegex: new RegExp "\\s+(?:>|&gt;)\\s?(#{(Config.maps.transitions.map (t) -> t.name).join "|"})", "i"
 
   @priority:
     if Config.maps.priorities
@@ -88,8 +88,8 @@ class Config
     regex: /`{1,3}([^]*?)`{1,3}/
 
   @mention:
-    regex: /(?:(?:^|\s+)@([\w._-]*))/i
-    regexGlobal: /(?:(?:^|\s+)@([\w._-]*))/gi
+    regex: /(?:(?:^|\s+)<?@([\w._-]*)>?)/i
+    regexGlobal: /(?:(?:^|\s+)<?@([\w._-]*)>?)/gi
 
   @rank:
     regex: new RegExp "(?:^|\\s)((?:#{Config.projects.prefixes}-)(?:\\d+)) rank (.*)", "i"
