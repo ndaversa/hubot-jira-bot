@@ -52,6 +52,12 @@ class Webhook
       toString: event.issue.fields.description or ""
       fromString: ""
 
+    if event.issue.fields.assignee
+      @onAssigneeChange event,
+        field: "assignee"
+        fieldtype: "jira"
+        to: event.issue.fields.assignee.name
+
   onJiraMention: (event, username, context) ->
     chatUser = null
     User.withUsername(username)
