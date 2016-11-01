@@ -8,8 +8,8 @@ class Assign
     person = if person is "me" then msg.message.user.name else person
     chatUser = Utils.lookupChatUser person
 
-    if chatUser
-      User.withEmail(chatUser.email_address)
+    if chatUser?.profile?.email?
+      User.withEmail(chatUser.profile.email)
       .then (user) ->
         Utils.fetch "#{Config.jira.url}/rest/api/2/issue/#{ticket.key}",
           method: "PUT"
@@ -21,8 +21,8 @@ class Assign
         Create = require "./create"
         Create.fromKey ticket.key
       .then (ticket) ->
-        Utils.robot.logger.debug "#{ticket.key}:Assigned", msg.message.user.email_address
-        Utils.cache.put "#{ticket.key}:Assigned", msg.message.user.email_address
+        Utils.robot.logger.debug "#{ticket.key}:Assigned", msg.message.user.profile.email
+        Utils.cache.put "#{ticket.key}:Assigned", msg.message.user.profile.email
         msg.robot.emit "JiraTicketAssigned", ticket, chatUser, msg.message.room, includeAttachment if emit
         text: "<@#{chatUser.id}> is now assigned to this ticket"
         fallback: "@#{chatUser.name} is now assigned to this ticket"
