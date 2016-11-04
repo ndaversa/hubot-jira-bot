@@ -9,8 +9,8 @@ class Watch
     key = key.toUpperCase()
     chatUser = Utils.lookupChatUser person
 
-    if chatUser
-      User.withEmail(chatUser.email_address)
+    if chatUser?.profile?.email?
+      User.withEmail(chatUser.profile.email)
       .then (user) ->
         Utils.fetch "#{Config.jira.url}/rest/api/2/issue/#{key}/watchers#{if remove then "?username=#{user.name}" else ""}",
           method: if remove then "DELETE" else "POST"

@@ -34,6 +34,7 @@ class Clone
       Create.fromKey(json.key)
     .then (ticket) ->
       cloned = ticket
+      room = Utils.JiraBot.adapter.getRoomName msg
       Utils.fetch "#{Config.jira.url}/rest/api/2/issueLink",
         method: "POST"
         body: JSON.stringify
@@ -45,7 +46,7 @@ class Clone
             key: cloned.key
           comment:
             body: """
-              Cloned by #{msg.message.user.name} in ##{msg.message.room} on #{msg.robot.adapterName}
+              Cloned by #{msg.message.user.name} in ##{room} on #{msg.robot.adapterName}
               #{Utils.JiraBot.adapter.getPermalink msg}
             """
     .then ->

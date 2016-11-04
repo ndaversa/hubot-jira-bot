@@ -46,6 +46,7 @@ class JiraBot
     @registerRobotResponses()
 
   send: (context, message, filter=yes) ->
+    context = @adapter.normalizeContext context
     message = @filterAttachmentsForPreviousMentions context, message if filter
     @adapter.send context, message
 
@@ -62,7 +63,7 @@ class JiraBot
       key = "#{room}:#{ticket}"
       if Utils.cache.get key
         removals.push attachment
-        @robot.logger.debug "Supressing ticket attachment for #{ticket} in #{room}"
+        @robot.logger.debug "Supressing ticket attachment for #{ticket} in #{@adapter.getRoomName context}"
       else
         Utils.cache.put key, true, Config.cache.mention.expiry
 
@@ -216,7 +217,7 @@ class JiraBot
 
     #Create
     @robot.on "JiraTicketCreated", (details) =>
-      @send message: room: details.room,
+      @send details.room,
         text: "Ticket created"
         attachments: [
           details.ticket.toAttachment no
@@ -226,14 +227,14 @@ class JiraBot
 
     @robot.on "JiraTicketCreationFailed", (error, room) =>
       robot.logger.error error.stack
-      @send message: room: room, "Unable to create ticket #{error}"
+      @send room, "Unable to create ticket #{error}"
 
     #Created in another room
     @robot.on "JiraTicketCreatedElsewhere", (details) =>
-      channel = @robot.adapter.client.getChannelGroupOrDMByName details.room
+      room = @adapter.getRoom details
       for r in Utils.lookupRoomsForProject details.ticket.fields.project.key
-        @send message: room: r,
-          text: "Ticket created in <##{channel.id}|#{channel.name}> by <@#{details.user.id}>"
+        @send r,
+          text: "Ticket created in <##{room.id}|#{room.name}> by <@#{details.user.id}>"
           attachments: [
             details.ticket.toAttachment no
             details.assignee
@@ -242,85 +243,85 @@ class JiraBot
 
     #Clone
     @robot.on "JiraTicketCloned", (ticket, room, clone, msg) =>
-      channel = @robot.adapter.client.getChannelGroupOrDMByName msg.message.room
-      @send message: room: room,
-        text: "Ticket created: Cloned from #{clone} in <##{channel.id}|#{channel.name}> by <@#{msg.message.user.id}>"
+      room = @adapter.getRoom msg
+      @send room,
+        text: "Ticket created: Cloned from #{clone} in <##{room.id}|#{room.name}> by <@#{msg.message.user.id}>"
         attachments: [ ticket.toAttachment no ]
 
     @robot.on "JiraTicketCloneFailed", (error, ticket, room) =>
       robot.logger.error error.stack
-      channel = @robot.adapter.client.getChannelGroupOrDMByName room
-      @send message: room: room, "Unable to clone `#{ticket}` to the <\##{channel.id}|#{channel.name}> project :sadpanda:\n```#{error}```"
+      room = @adapter.getRoom room
+      @send room, "Unable to clone `#{ticket}` to the <\##{room.id}|#{room.name}> project :sadpanda:\n```#{error}```"
 
     #Transition
     @robot.on "JiraTicketTransitioned", (ticket, transition, room, includeAttachment=no) =>
-      @send message: room: room,
+      @send room,
         text: "Transitioned #{ticket.key} to `#{transition.to.name}`"
         attachments: [ ticket.toAttachment no ] if includeAttachment
 
     @robot.on "JiraTicketTransitionFailed", (error, room) =>
       robot.logger.error error.stack
-      @send message: room: room, "#{error}"
+      @send room, "#{error}"
 
     #Assign
     @robot.on "JiraTicketAssigned", (ticket, user, room, includeAttachment=no) =>
-      @send message: room: room,
+      @send room,
         text: "Assigned <@#{user.id}> to #{ticket.key}"
         attachments: [ ticket.toAttachment no ] if includeAttachment
 
     @robot.on "JiraTicketUnassigned", (ticket, room, includeAttachment=no) =>
-      @send message: room: room,
+      @send room,
         text: "#{ticket.key} is now unassigned"
         attachments: [ ticket.toAttachment no ] if includeAttachment
 
     @robot.on "JiraTicketAssignmentFailed", (error, room) =>
       @robot.logger.error error.stack
-      @send message: room: room, "#{error}"
+      @send room, "#{error}"
 
     #Watch
     @robot.on "JiraTicketWatched", (ticket, user, room, includeAttachment=no) =>
-      @send message: room: room,
+      @send room,
         text: "Added <@#{user.id}> as a watcher on #{ticket.key}"
         attachments: [ ticket.toAttachment no ] if includeAttachment
 
     @robot.on "JiraTicketUnwatched", (ticket, user, room, includeAttachment=no) =>
-      @send message: room: room,
+      @send room,
         text: "Removed <@#{user.id}> as a watcher on #{ticket.key}"
         attachments: [ ticket.toAttachment no ] if includeAttachment
 
     @robot.on "JiraTicketWatchFailed", (error, room) =>
       @robot.logger.error error.stack
-      @send message: room: room, "#{error}"
+      @send room, "#{error}"
 
     #Rank
     @robot.on "JiraTicketRanked", (ticket, direction, room, includeAttachment=no) =>
-      @send message: room: room,
+      @send room,
         text: "Ranked #{ticket.key} to `#{direction}`"
         attachments: [ ticket.toAttachment no ] if includeAttachment
 
     @robot.on "JiraTicketRankFailed", (error, room) =>
       @robot.logger.error error.stack
-      @send message: room: room, "#{error}"
+      @send room, "#{error}"
 
     #Labels
     @robot.on "JiraTicketLabelled", (ticket, room, includeAttachment=no) =>
-      @send message: room: room,
+      @send room,
         text: "Added labels to #{ticket.key}"
         attachments: [ ticket.toAttachment no ] if includeAttachment
 
     @robot.on "JiraTicketLabelFailed", (error, room) =>
       @robot.logger.error error.stack
-      @send message: room: room, "#{error}"
+      @send room, "#{error}"
 
     #Comments
     @robot.on "JiraTicketCommented", (ticket, room, includeAttachment=no) =>
-      @send message: room: room,
+      @send room,
         text: "Added comment to #{ticket.key}"
         attachments: [ ticket.toAttachment no ] if includeAttachment
 
     @robot.on "JiraTicketCommentFailed", (error, room) =>
       @robot.logger.error error.stack
-      @send message: room: room, "#{error}"
+      @send room, "#{error}"
 
   registerRobotResponses: ->
     #Help
@@ -434,15 +435,15 @@ class JiraBot
     @robot.respond Config.commands.regex, (msg) =>
       message = msg.message.rawText or msg.message.text
       [ __, project, command, summary ] = message.match Config.commands.regex
-      room = project or msg.message.room
+      room = project or @adapter.getRoomName msg
       project = Config.maps.projects[room.toLowerCase()]
       type = Config.maps.types[command.toLowerCase()]
 
       unless project
         channels = []
         for team, key of Config.maps.projects
-          channel = @robot.adapter.client.getChannelGroupOrDMByName team
-          channels.push " <\##{channel.id}|#{channel.name}>" if channel
+          room = @adapter.getRoom team
+          channels.push " <\##{room.id}|#{room.name}>" if room
         return msg.reply "#{type} must be submitted in one of the following project channels: #{channels}"
 
       if Config.duplicates.detection and @adapter.detectForDuplicates?

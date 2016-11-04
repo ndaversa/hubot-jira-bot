@@ -24,12 +24,23 @@ class Slack extends GenericAdapter
       .catch (error) ->
         @robot.logger.error error
 
+  getRoom: (context) ->
+    context = @normalizeContext context
+    room = @robot.adapter.client.rtm.dataStore.getChannelOrGroupByName context.message.room
+    room = @robot.adapter.client.rtm.dataStore.getChannelGroupOrDMById context.message.room unless room
+    room
+
+  getUsers: ->
+    @robot.adapter.client.rtm.dataStore.users
+
   send: (context, message) ->
-    payload = channel: context.message.room
+    payload = text: ""
+    context = @normalizeContext context
+
     if _(message).isString()
       payload.text = message
     else
-      payload = _(payload).extend message
+      payload = _(payload).chain().extend(message).pick("text", "attachments").value()
 
     if Config.slack.verification.token and payload.attachments?.length > 0
       attachments = []
@@ -37,16 +48,9 @@ class Slack extends GenericAdapter
         attachments.push a
         attachments.push @buttonAttachmentsForState "mention", a if a and a.type is "JiraTicketAttachment"
       payload.attachments = attachments
-    rc = @robot.adapter.customMessage payload
 
-    # Could not find existing conversation
-    # so client bails on sending see issue: https://github.com/slackhq/hubot-slack/issues/256
-    # detect the bail by checking the response and attempt
-    # a fallback using adapter.send
-    if rc is undefined
-      text = payload.text
-      text += "\n#{a.fallback}" for a in payload.attachments
-      @robot.adapter.send context.message, text
+    payload.text = " " if payload.attachments?.length > 0 and payload.text.length is 0
+    @robot.adapter.send room: context.message.room, payload if payload.text.length > 0
 
   shouldJiraBotHandle: (msg) ->
     id = msg.callback_id
@@ -134,7 +138,11 @@ class Slack extends GenericAdapter
           resolve()
 
   getPermalink: (msg) ->
-    "https://#{msg.robot.adapter.client.team.domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}"
+    team = _(msg.robot.adapter.client.rtm.dataStore.teams).pairs()
+    if domain = team[0]?[1]?.domain
+      "https://#{domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}"
+    else
+      ""
 
   buttonAttachmentsForState: (state="mention", details) ->
     key = details.author_name or details.key

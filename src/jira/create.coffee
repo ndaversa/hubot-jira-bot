@@ -16,11 +16,16 @@ class Create
   @with: (project, type, summary, msg, fields, emit=yes) ->
     toState = null
     assignee = null
+    room = Utils.JiraBot.adapter.getRoomName msg
 
-    User.withEmail(msg.message.user.email_address)
-    .then (reporter) ->
+    if msg.message.user.profile?.email?
+      user = User.withEmail(msg.message.user.profile.email)
+    else
+      user = Promise.resolve()
+
+    user.then (reporter) ->
       { summary, description, toState, assignee, labels, priority } = Utils.extract.all summary
-      labels.unshift msg.message.room
+      labels.unshift room
 
       issue =
         fields:
@@ -33,7 +38,7 @@ class Create
       issue.fields.labels = _(issue.fields.labels).union labels
       issue.fields.description += """
         #{(if description then description + "\n\n" else "")}
-        Reported by #{msg.message.user.name} in ##{msg.message.room} on #{msg.robot.adapterName}
+        Reported by #{msg.message.user.name} in ##{room} on #{msg.robot.adapterName}
         #{Utils.JiraBot.adapter.getPermalink msg}
       """
       issue.fields.reporter = reporter if reporter
@@ -52,7 +57,7 @@ class Create
           [ undefined, text:error, ticket]
       .then (results) ->
         [ transition, assignee, ticket ] = results
-        roomProject = Config.maps.projects[msg.message.room]
+        roomProject = Config.maps.projects[room]
         if emit
           Utils.robot.emit "JiraTicketCreated",
             ticket: ticket

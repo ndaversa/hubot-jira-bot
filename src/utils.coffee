@@ -44,7 +44,7 @@ class Utils
     _(results).keys()
 
   @lookupChatUser: (username) ->
-    users = Utils.robot.brain.users()
+    users = Utils.JiraBot.adapter.getUsers()
     return users[username] if users[username] #Note: if get the user id instead of username
 
     result = (users[user] for user of users when users[user].name is username)
@@ -53,8 +53,8 @@ class Utils
     return null
 
   @lookupUserWithJira: (jira, fallback=no) ->
-    users = Utils.robot.brain.users()
-    result = (users[user] for user of users when users[user].email_address is jira.emailAddress) if jira
+    users = Utils.JiraBot.adapter.getUsers()
+    result = (users[user] for user of users when users[user].profile.email is jira.emailAddress) if jira
     if result?.length is 1
       return if fallback then result[0].name else "<@#{result[0].id}>"
     else if jira
@@ -71,8 +71,8 @@ class Utils
     return chatUsers
 
   @lookupChatUserWithJira: (jira) ->
-    users = Utils.robot.brain.users()
-    result = (users[user] for user of users when users[user].email_address is jira.emailAddress) if jira
+    users = Utils.JiraBot.adapter.getUsers()
+    result = (users[user] for user of users when users[user].profile.email is jira.emailAddress) if jira
     return result[0] if result?.length is 1
     return null
 
@@ -91,7 +91,7 @@ class Utils
     findMatch = (user) ->
       name = user.name or user.login
       return unless name
-      users = Utils.robot.brain.users()
+      users = Utils.JiraBot.adapter.getUsers()
       users = _(users).keys().map (id) ->
         u = users[id]
         id: u.id

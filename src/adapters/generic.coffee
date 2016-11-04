@@ -40,6 +40,8 @@ class GenericAdapter
     return @dmCounts[user.id]
 
   send: (context, message) ->
+    context = @normalizeContext context
+
     if _(message).isString()
       payload = message
     else if message.text or message.attachments
@@ -62,13 +64,34 @@ class GenericAdapter
       if _(@disabledUsers).contains user.id
         @robot.logger.debug "JIRA Notification surpressed for #{user.name}"
       else
-        if message.author? and user.email_address is message.author.emailAddress
+        if message.author? and user.profile?.email is message.author.emailAddress
           @robot.logger.debug "JIRA Notification surpressed for #{user.name} because it would be a self-notification"
           continue
         message.text += "\n#{message.footer}" if message.text and message.footer and @getDMCountFor(user) < 3
-        @send message: room: user.name, message
+        @send message: room: user.id, _(message).pick "attachments", "text"
         @incrementDMCountFor user
 
   getPermalink: (msg) -> ""
+
+  normalizeContext: (context) ->
+    if _(context).isString()
+      normalized = message: room: context
+    else if context?.room
+      normalized = message: context
+    else if context?.message?.room
+      normalized = context
+    normalized
+
+  getRoom: (context) ->
+    context = @normalizeContext context
+    id: context.message.room
+    name: context.message.room
+
+  getRoomName: (context) ->
+    room = @getRoom context
+    room.name
+
+  getUsers: ->
+    @robot.brain.users()
 
 module.exports = GenericAdapter
