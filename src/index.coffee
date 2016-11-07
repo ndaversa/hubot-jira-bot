@@ -63,6 +63,7 @@ class JiraBot
       key = "#{room}:#{ticket}"
       if Utils.cache.get key
         removals.push attachment
+        Utils.Stats.increment "jirabot.surpress.attachment"
         @robot.logger.debug "Supressing ticket attachment for #{ticket} in #{@adapter.getRoomName context}"
       else
         Utils.cache.put key, true, Config.cache.mention.expiry
@@ -129,6 +130,7 @@ class JiraBot
         author: event.user
         footer: disableDisclaimer
         attachments: [ ticket.toAttachment no ]
+      Utils.Stats.increment "jirabot.webhook.ticket.inprogress"
 
     @robot.on "JiraWebhookTicketInReview", (ticket, event) =>
       assignee = Utils.lookupUserWithJira ticket.fields.assignee
@@ -143,6 +145,7 @@ class JiraBot
         author: event.user
         footer: disableDisclaimer
         attachments: [ ticket.toAttachment no ]
+      Utils.Stats.increment "jirabot.webhook.ticket.inreview"
 
     @robot.on "JiraWebhookTicketDone", (ticket, event) =>
       @adapter.dm Utils.lookupChatUsersWithJira(ticket.watchers),
@@ -152,8 +155,9 @@ class JiraBot
         author: event.user
         footer: disableDisclaimer
         attachments: [ ticket.toAttachment no ]
+      Utils.Stats.increment "jirabot.webhook.ticket.done"
 
-    # Comment noitifications for watchers
+    # Comment notifications for watchers
     @robot.on "JiraWebhookTicketComment", (ticket, comment) =>
       @adapter.dm Utils.lookupChatUsersWithJira(ticket.watchers),
         text: """
@@ -165,8 +169,9 @@ class JiraBot
         author: comment.author
         footer: disableDisclaimer
         attachments: [ ticket.toAttachment no ]
+      Utils.Stats.increment "jirabot.webhook.ticket.comment"
 
-    # Comment noitifications for assignee
+    # Comment notifications for assignee
     @robot.on "JiraWebhookTicketComment", (ticket, comment) =>
       return unless ticket.fields.assignee
       return if ticket.watchers.length > 0 and _(ticket.watchers).findWhere name: ticket.fields.assignee.name
@@ -181,6 +186,7 @@ class JiraBot
         author: comment.author
         footer: disableDisclaimer
         attachments: [ ticket.toAttachment no ]
+      Utils.Stats.increment "jirabot.webhook.ticket.comment"
 
     # Mentions
     @robot.on "JiraWebhookTicketMention", (ticket, user, event, context) =>
@@ -194,6 +200,7 @@ class JiraBot
         author: event.user
         footer: disableDisclaimer
         attachments: [ ticket.toAttachment no ]
+      Utils.Stats.increment "jirabot.webhook.ticket.mention"
 
     # Assigned
     @robot.on "JiraWebhookTicketAssigned", (ticket, user, event) =>
@@ -204,6 +211,7 @@ class JiraBot
         author: event.user
         footer: disableDisclaimer
         attachments: [ ticket.toAttachment no ]
+      Utils.Stats.increment "jirabot.webhook.ticket.assigned"
 
   registerEventListeners: ->
 
@@ -224,10 +232,12 @@ class JiraBot
           details.assignee
           details.transition
         ]
+      Utils.Stats.increment "jirabot.ticket.create.success"
 
     @robot.on "JiraTicketCreationFailed", (error, room) =>
       robot.logger.error error.stack
       @send room, "Unable to create ticket #{error}"
+      Utils.Stats.increment "jirabot.ticket.create.failed"
 
     #Created in another room
     @robot.on "JiraTicketCreatedElsewhere", (details) =>
@@ -240,6 +250,7 @@ class JiraBot
             details.assignee
             details.transition
           ]
+      Utils.Stats.increment "jirabot.ticket.create.elsewhere"
 
     #Clone
     @robot.on "JiraTicketCloned", (ticket, room, clone, msg) =>
@@ -247,81 +258,97 @@ class JiraBot
       @send room,
         text: "Ticket created: Cloned from #{clone} in <##{room.id}|#{room.name}> by <@#{msg.message.user.id}>"
         attachments: [ ticket.toAttachment no ]
+      Utils.Stats.increment "jirabot.ticket.clone.success"
 
     @robot.on "JiraTicketCloneFailed", (error, ticket, room) =>
-      robot.logger.error error.stack
+      @robot.logger.error error.stack
       room = @adapter.getRoom room
       @send room, "Unable to clone `#{ticket}` to the <\##{room.id}|#{room.name}> project :sadpanda:\n```#{error}```"
+      Utils.Stats.increment "jirabot.ticket.clone.failed"
 
     #Transition
     @robot.on "JiraTicketTransitioned", (ticket, transition, room, includeAttachment=no) =>
       @send room,
         text: "Transitioned #{ticket.key} to `#{transition.to.name}`"
         attachments: [ ticket.toAttachment no ] if includeAttachment
+      Utils.Stats.increment "jirabot.ticket.transition.success"
 
     @robot.on "JiraTicketTransitionFailed", (error, room) =>
-      robot.logger.error error.stack
+      @robot.logger.error error.stack
       @send room, "#{error}"
+      Utils.Stats.increment "jirabot.ticket.transition.failed"
 
     #Assign
     @robot.on "JiraTicketAssigned", (ticket, user, room, includeAttachment=no) =>
       @send room,
         text: "Assigned <@#{user.id}> to #{ticket.key}"
         attachments: [ ticket.toAttachment no ] if includeAttachment
+      Utils.Stats.increment "jirabot.ticket.assign.success"
 
     @robot.on "JiraTicketUnassigned", (ticket, room, includeAttachment=no) =>
       @send room,
         text: "#{ticket.key} is now unassigned"
         attachments: [ ticket.toAttachment no ] if includeAttachment
+      Utils.Stats.increment "jirabot.ticket.unassign.success"
 
     @robot.on "JiraTicketAssignmentFailed", (error, room) =>
       @robot.logger.error error.stack
       @send room, "#{error}"
+      Utils.Stats.increment "jirabot.ticket.assign.failed"
 
     #Watch
     @robot.on "JiraTicketWatched", (ticket, user, room, includeAttachment=no) =>
       @send room,
         text: "Added <@#{user.id}> as a watcher on #{ticket.key}"
         attachments: [ ticket.toAttachment no ] if includeAttachment
+      Utils.Stats.increment "jirabot.ticket.watch.success"
 
     @robot.on "JiraTicketUnwatched", (ticket, user, room, includeAttachment=no) =>
       @send room,
         text: "Removed <@#{user.id}> as a watcher on #{ticket.key}"
         attachments: [ ticket.toAttachment no ] if includeAttachment
+      Utils.Stats.increment "jirabot.ticket.unwatch.success"
 
     @robot.on "JiraTicketWatchFailed", (error, room) =>
       @robot.logger.error error.stack
       @send room, "#{error}"
+      Utils.Stats.increment "jirabot.ticket.watch.failed"
 
     #Rank
     @robot.on "JiraTicketRanked", (ticket, direction, room, includeAttachment=no) =>
       @send room,
         text: "Ranked #{ticket.key} to `#{direction}`"
         attachments: [ ticket.toAttachment no ] if includeAttachment
+      Utils.Stats.increment "jirabot.ticket.rank.success"
 
     @robot.on "JiraTicketRankFailed", (error, room) =>
       @robot.logger.error error.stack
       @send room, "#{error}"
+      Utils.Stats.increment "jirabot.ticket.rank.failed"
 
     #Labels
     @robot.on "JiraTicketLabelled", (ticket, room, includeAttachment=no) =>
       @send room,
         text: "Added labels to #{ticket.key}"
         attachments: [ ticket.toAttachment no ] if includeAttachment
+      Utils.Stats.increment "jirabot.ticket.label.success"
 
     @robot.on "JiraTicketLabelFailed", (error, room) =>
       @robot.logger.error error.stack
       @send room, "#{error}"
+      Utils.Stats.increment "jirabot.ticket.label.failed"
 
     #Comments
     @robot.on "JiraTicketCommented", (ticket, room, includeAttachment=no) =>
       @send room,
         text: "Added comment to #{ticket.key}"
         attachments: [ ticket.toAttachment no ] if includeAttachment
+      Utils.Stats.increment "jirabot.ticket.comment.success"
 
     @robot.on "JiraTicketCommentFailed", (error, room) =>
       @robot.logger.error error.stack
       @send room, "#{error}"
+      Utils.Stats.increment "jirabot.ticket.comment.failed"
 
   registerRobotResponses: ->
     #Help
@@ -329,6 +356,7 @@ class JiraBot
       msg.finish()
       [ __, topic] = msg.match
       @send msg, Help.forTopic topic, @robot
+      Utils.Stats.increment "command.jirabot.help"
 
     #Enable/Disable Watch Notifications
     @robot.respond Config.watch.notificationsRegex, (msg) =>
@@ -355,6 +383,8 @@ class JiraBot
           If you wish to _enable_ them again just send me this message:
           > jira enable notifications
           """
+      Utils.Stats.increment "command.jirabot.toggleNotifications"
+
     #Search
     @robot.respond Config.search.regex, (msg) =>
       msg.finish()
@@ -371,6 +401,7 @@ class JiraBot
       .catch (error) =>
         @send msg, "Unable to search for `#{query}` :sadpanda:"
         @robot.logger.error error.stack
+      Utils.Stats.increment "command.jirabot.search"
 
     #Transition
     if Config.maps.transitions
@@ -378,6 +409,7 @@ class JiraBot
         msg.finish()
         [ __, key, toState ] = msg.match
         Jira.Transition.forTicketKeyToState key, toState, msg, no
+        Utils.Stats.increment "command.jirabot.transition"
 
     #Clone
     @robot.hear Config.clone.regex, (msg) =>
@@ -385,6 +417,7 @@ class JiraBot
       [ __, ticket, channel ] = msg.match
       project = Config.maps.projects[channel]
       Jira.Clone.fromTicketKeyToProject ticket, project, channel, msg
+      Utils.Stats.increment "command.jirabot.clone"
 
     #Watch
     @robot.hear Config.watch.regex, (msg) =>
@@ -395,12 +428,14 @@ class JiraBot
         Jira.Watch.forTicketKeyRemovePerson key, person, msg, no
       else
         Jira.Watch.forTicketKeyForPerson key, person, msg, no
+      Utils.Stats.increment "command.jirabot.watch"
 
     #Rank
     @robot.hear Config.rank.regex, (msg) =>
       msg.finish()
       [ __, key, direction ] = msg.match
       Jira.Rank.forTicketKeyByDirection key, direction, msg, no
+      Utils.Stats.increment "command.jirabot.rank"
 
     #Comment or maybe Labels (damn you slack)
     @robot.hear Config.comment.regex, (msg) =>
@@ -411,15 +446,18 @@ class JiraBot
         [ __, key ] = msg.match
         [ __, labels ] = Utils.extract.labels message.replace(Config.labels.commandSplitRegex, "$1")
         Jira.Labels.forTicketKeyWith key, labels, msg, no
+        Utils.Stats.increment "command.jirabot.label"
       else
         [ __, key, comment ] = msg.match
         Jira.Comment.forTicketKeyWith key, comment, msg, no
+        Utils.Stats.increment "command.jirabot.comment"
 
     #Subtask
     @robot.respond Config.subtask.regex, (msg) =>
       msg.finish()
       [ __, key, summary ] = msg.match
       Jira.Create.subtaskFromKeyWith key, summary, msg
+      Utils.Stats.increment "command.jirabot.subtask"
 
     #Assign
     @robot.hear Config.assign.regex, (msg) =>
@@ -430,6 +468,8 @@ class JiraBot
         Jira.Assign.forTicketKeyToUnassigned key, msg, no
       else
         Jira.Assign.forTicketKeyToPerson key, person, msg, no
+
+      Utils.Stats.increment "command.jirabot.assign"
 
     #Create
     @robot.respond Config.commands.regex, (msg) =>
@@ -451,15 +491,11 @@ class JiraBot
       else
         Jira.Create.with project, type, summary, msg
 
-    #Mention ticket by url
-    @robot.hear Config.jira.urlRegexGlobal, (msg) =>
-      [ __, ticket ] = msg.match
-      matches = msg.match.map (match) ->
-        match.match(Config.jira.urlRegex)[1]
-      msg.match = matches
-      @prepareResponseForJiraTickets msg
+      Utils.Stats.increment "command.jirabot.create"
 
-    #Mention ticket by key
-    @robot.listen @matchJiraTicket, @prepareResponseForJiraTickets.bind @
+    #Mention ticket by url or key
+    @robot.listen @matchJiraTicket, (msg) =>
+      @prepareResponseForJiraTickets msg
+      Utils.Stats.increment "command.jirabot.mention.ticket"
 
 module.exports = JiraBot

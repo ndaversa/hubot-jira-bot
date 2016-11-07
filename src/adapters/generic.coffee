@@ -1,4 +1,5 @@
 _ = require "underscore"
+Utils = require "../utils"
 
 class GenericAdapter
   @JIRA_NOTIFICATIONS_DISABLED: "jira-notifications-disabled"
@@ -54,6 +55,7 @@ class GenericAdapter
         for attachment in message.attachments
           payload += "#{attachment.fallback}\n"
     else
+      Utils.Stats.increment "jirabot.message.empty"
       return @robot.logger.error "Unable to find a message to send", message
 
     @robot.send room: context.message.room, payload
@@ -62,6 +64,7 @@ class GenericAdapter
     users = [ users ] unless _(users).isArray()
     for user in users when user
       if _(@disabledUsers).contains user.id
+        Utils.Stats.increment "jirabot.surpress.notification"
         @robot.logger.debug "JIRA Notification surpressed for #{user.name}"
       else
         if message.author? and user.profile?.email is message.author.emailAddress

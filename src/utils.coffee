@@ -4,6 +4,10 @@ fetch = require "node-fetch"
 cache = require "memory-cache"
 
 Config = require "./config"
+StatsD = require('node-dogstatsd').StatsD
+
+if Config.stats.host and Config.stats.port and Config.stats.prefix
+  c = new StatsD Config.stats.host, Config.stats.port
 
 class Utils
   @robot: null
@@ -124,6 +128,20 @@ class Utils
   @cache:
     put: (key, value, time=Config.cache.default.expiry) -> cache.put key, value, time
     get: cache.get
+
+  @Stats:
+    increment: (label, tags) ->
+      try
+        label = label
+          .replace( /[\/\(\)-]/g, '.' ) #Convert slashes, brackets and dashes to dots
+          .replace( /[:\?]/g, '' ) #Remove any colon or question mark
+          .replace( /\.+/g, '.' ) #Compress multiple periods into one
+          .replace( /\.$/, '' ) #Remove any trailing period
+
+        console.log "#{Config.stats.prefix}.#{label}", tags if Config.debug or yes
+        c.increment "#{Config.stats.prefix}.#{label}", tags if c
+      catch e
+        console.error e
 
   @extract:
     all: (summary) ->

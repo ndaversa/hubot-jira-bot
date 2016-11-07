@@ -17,6 +17,7 @@ class Slack extends GenericAdapter
         return @robot.emit "SlackEvents", payload, res unless @shouldJiraBotHandle payload
       catch e
         @robot.logger.debug e
+        Utils.Stats.increment "jirabot.webhook.failed"
         return
 
       @onButtonActions(payload).then ->
@@ -80,6 +81,7 @@ class Slack extends GenericAdapter
 
       if action.name is "create" and action.value is "no"
         msg.attachments.push text: "Ticket creation has been cancelled"
+      Utils.Stats.increment "jirabot.slack.button.duplicate.#{action.name}.#{action.value}"
 
     return Promise.resolve()
 
@@ -136,6 +138,7 @@ class Slack extends GenericAdapter
             msg.attachments.push
               text: "Unable to to process #{action.name}"
           resolve()
+      Utils.Stats.increment "jirabot.slack.button.#{action.name}"
 
   getPermalink: (msg) ->
     team = _(msg.robot.adapter.client.rtm.dataStore.teams).pairs()
