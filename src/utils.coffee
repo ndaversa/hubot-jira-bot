@@ -138,7 +138,7 @@ class Utils
           .replace( /\.+/g, '.' ) #Compress multiple periods into one
           .replace( /\.$/, '' ) #Remove any trailing period
 
-        console.log "#{Config.stats.prefix}.#{label}", tags if Config.debug or yes
+        console.log "#{Config.stats.prefix}.#{label}", tags if Config.debug
         c.increment "#{Config.stats.prefix}.#{label}", tags if c
       catch e
         console.error e
