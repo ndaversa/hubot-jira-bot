@@ -437,20 +437,24 @@ class JiraBot
       Jira.Rank.forTicketKeyByDirection key, direction, msg, no
       Utils.Stats.increment "command.jirabot.rank"
 
-    #Comment or maybe Labels (damn you slack)
+    #Labels
+    @robot.hear Config.labels.addRegex, (msg) =>
+      msg.finish()
+      [ __, key ] = msg.match
+      {input: input} = msg.match
+      labels = []
+      labels = (input.match(Config.labels.regex).map((label) -> label.replace('#', '').trim())).concat(labels)
+
+      Jira.Labels.forTicketKeyWith key, labels, msg, no
+      Utils.Stats.increment "command.jirabot.label"
+
+    #Comment
     @robot.hear Config.comment.regex, (msg) =>
       msg.finish()
-      message = msg.message.rawText or msg.message.text
+      [ __, key, comment ] = msg.match
 
-      if Config.labels.addRegex.test message
-        [ __, key ] = msg.match
-        [ __, labels ] = Utils.extract.labels message.replace(Config.labels.commandSplitRegex, "$1")
-        Jira.Labels.forTicketKeyWith key, labels, msg, no
-        Utils.Stats.increment "command.jirabot.label"
-      else
-        [ __, key, comment ] = msg.match
-        Jira.Comment.forTicketKeyWith key, comment, msg, no
-        Utils.Stats.increment "command.jirabot.comment"
+      Jira.Comment.forTicketKeyWith key, comment, msg, no
+      Utils.Stats.increment "command.jirabot.comment"
 
     #Subtask
     @robot.respond Config.subtask.regex, (msg) =>

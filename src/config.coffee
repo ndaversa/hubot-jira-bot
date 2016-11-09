@@ -119,8 +119,7 @@ class Config
     regex: new RegExp "^((?:#{Config.projects.prefixes}-)(?:\\d+))\\s?(?:<\\s?)([^]+)", "i"
 
   @labels:
-    commandSplitRegex: new RegExp "(?:#{Config.projects.prefixes}-)(?:\\d+)\\s?(?:<|&lt;)([^]+)", "i"
-    addRegex: new RegExp "^((?:#{Config.projects.prefixes}-)(?:\\d+))\\s?(?:<|&lt;)(?:(\\s*#\\S+)|(?:\\s*<#[A-Z0-9]*\\|(\\S+)>))+$", "i"
+    addRegex: new RegExp "^((?:#{Config.projects.prefixes}-)(?:\\d+))\\s?<(\\s*#\\S+)+$", "i"
     slackChannelRegexGlobal: /(?:\s+|^)<#[A-Z0-9]*\|\S+>/g
     slackChannelRegex: /(?:\s+|^)<#[A-Z0-9]*\|(\S+)>/
     regex: /(?:\s+|^)#\S+/g
