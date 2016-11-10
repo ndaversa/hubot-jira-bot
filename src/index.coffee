@@ -71,26 +71,22 @@ class JiraBot
     message.attachments = _(message.attachments).difference removals
     return message
 
-  matchJiraTicket: (message) ->
-    if message.match?
-      matches = message.match Config.ticket.regexGlobal
+  matchJiraTicket: (context) ->
+    if context.match?
+      matches = context.match Config.ticket.regexGlobal
       unless matches and matches[0]
-        urlMatch = message.match Config.jira.urlRegex
+        urlMatch = context.match Config.jira.urlRegex
         if urlMatch and urlMatch[1]
           matches = [ urlMatch[1] ]
-    else if message.message?.rawText?.match?
-      matches = message.message.rawText.match Config.ticket.regexGlobal
 
     if matches and matches[0]
       return matches
-    else
-      if message.message?.rawMessage?.attachments?
-        attachments = message.message.rawMessage.attachments
-        for attachment in attachments
-          if attachment.text?
-            matches = attachment.text.match Config.ticket.regexGlobal
-            if matches and matches[0]
-              return matches
+    else if context.message?.attachments?
+      attachments = context.message.attachments
+      for attachment in attachments when attachment.text?
+        matches = attachment.text.match Config.ticket.regexGlobal
+        if matches and matches[0]
+          return matches
     return false
 
   prepareResponseForJiraTickets: (msg) ->
@@ -477,8 +473,7 @@ class JiraBot
 
     #Create
     @robot.respond Config.commands.regex, (msg) =>
-      message = msg.message.rawText or msg.message.text
-      [ __, project, command, summary ] = message.match Config.commands.regex
+      [ __, project, command, summary ] = msg.match
       room = project or @adapter.getRoomName msg
       project = Config.maps.projects[room.toLowerCase()]
       type = Config.maps.types[command.toLowerCase()]
