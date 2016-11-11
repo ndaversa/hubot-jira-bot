@@ -10,19 +10,19 @@ class Search
       labels = (query.match(Config.labels.regex).map((label) -> label.replace('#', '').trim())).concat(labels)
       query = query.replace Config.labels.regex, ""
 
-    jql = if query.length > 0 then "text ~ \"#{query}\"" else ""
+    jql = if query.length > 0 then "text ~ '#{query}'" else ""
     noResults = "No results for #{query}"
     found = "Found <#{Config.jira.url}/secure/IssueNavigator.jspa?jqlQuery=__JQL__&runQuery=true|__xx__ issues> containing `#{query}`"
 
     if project
       jql += " and " if jql.length > 0
-      jql += "project = #{project}"
+      jql += "project = '#{project}'"
       noResults += " in project `#{project}`"
       found += " in project `#{project}`"
 
     if labels.length > 0
       jql += " and " if jql.length > 0
-      jql += "labels = #{label}" for label in labels
+      jql += "labels = '#{label}'" for label in labels
       noResults += " with labels `#{labels.join ', '}`"
       found += " with labels `#{labels.join ', '}`"
 
