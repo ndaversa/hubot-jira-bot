@@ -36,7 +36,8 @@ class Slack extends GenericAdapter
 
   send: (context, message) ->
     payload = text: ""
-    context = @normalizeContext context
+    room = @getRoom context
+    return unless room
 
     if _(message).isString()
       payload.text = message
@@ -51,7 +52,7 @@ class Slack extends GenericAdapter
       payload.attachments = attachments
 
     payload.text = " " if payload.attachments?.length > 0 and payload.text.length is 0
-    @robot.adapter.send room: context.message.room, payload if payload.text.length > 0
+    @robot.adapter.send room: room.id, payload if payload.text.length > 0
 
   shouldJiraBotHandle: (msg) ->
     id = msg.callback_id

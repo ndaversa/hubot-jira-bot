@@ -41,7 +41,8 @@ class GenericAdapter
     return @dmCounts[user.id]
 
   send: (context, message) ->
-    context = @normalizeContext context
+    room = @getRoom context
+    return unless room
 
     if _(message).isString()
       payload = message
@@ -58,7 +59,7 @@ class GenericAdapter
       Utils.Stats.increment "jirabot.message.empty"
       return @robot.logger.error "Unable to find a message to send", message
 
-    @robot.send room: context.message.room, payload
+    @robot.send room: room.id, payload
 
   dm: (users, message) ->
     users = [ users ] unless _(users).isArray()
