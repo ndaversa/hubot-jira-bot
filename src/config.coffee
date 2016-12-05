@@ -10,6 +10,7 @@
 #   HUBOT_JIRA_TYPES_MAP  {"story":"Story / Feature","bug":"Bug","task":"Task"}
 #   HUBOT_JIRA_URL (format: "https://jira-domain.com:9090")
 #   HUBOT_JIRA_USERNAME
+#   HUBOT_JIRA_FIELDS - customize the jira fields returned by api, defaults to: ["issuetype", "status", "assignee", "reporter", "summary", "description", "labels", "project"]
 #   HUBOT_SLACK_BUTTONS {"watch":{"name":"watch","text":"Watch","type":"button","value":"watch","style":"primary"},"assign":{"name":"assign","text":"Assign to me","type":"button","value":"assign"},"devready":{"name":"devready","text":"Dev Ready","type":"button","value":"selected"},"inprogress":{"name":"inprogress","text":"In Progress","type":"button","value":"progress"},"rank":{"name":"rank","text":"Rank Top","type":"button","value":"top"},"running":{"name":"running","text":"Running","type":"button","value":"running"},"review":{"name":"review","text":"Review","type":"button","value":"review"},"resolved":{"name":"resolved","text":"Resolved","type":"button","style":"primary","value":"resolved"},"done":{"name":"done","text":"Done","type":"button","style":"primary","value":"done"}}
 #   HUBOT_SLACK_PROJECT_BUTTON_STATE_MAP {"PLAT":{"inprogress":["review","running","resolved"],"review":["running","resolved"],"running":["resolved"],"resolved":["devready","inprogress"],"mention":["watch","assign","devready","inprogress","rank"]},"HAL":{"inprogress":["review","running","resolved"],"review":["running","resolved"],"running":["resolved"],"resolved":["devready","inprogress"],"mention":["watch","assign","devready","inprogress","rank"]},"default":{"inprogress":["review","done"],"review":["done"],"done":["devready, inprogress"],"mention":["watch","assign","devready","inprogress","rank"]}}
 #   HUBOT_SLACK_VERIFICATION_TOKEN - The slack verification token for your application
@@ -59,6 +60,8 @@ class Config
   @jira.urlRegexBase = "#{Config.jira.url}/browse/".replace /[-\/\\^$*+?.()|[\]{}]/g, '\\$&'
   @jira.urlRegex = new RegExp "(?:#{Config.jira.urlRegexBase})((?:#{Config.projects.prefixes}-)\\d+)\\s*", "i"
   @jira.urlRegexGlobal = new RegExp "(?:#{Config.jira.urlRegexBase})((?:#{Config.projects.prefixes}-)\\d+)\\s*", "gi"
+  if process.env.HUBOT_JIRA_FIELDS
+    @jira.fields = JSON.parse process.env.HUBOT_JIRA_FIELDS
 
   @github:
     disabled: !!process.env.HUBOT_JIRA_GITHUB_DISABLED
