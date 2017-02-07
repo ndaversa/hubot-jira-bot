@@ -3,8 +3,8 @@ User = require "./user"
 Utils = require "../utils"
 
 class Watch
-  @forTicketKeyForPerson: (key, person, msg, includeAttachment=no, remove=no, emit=yes) ->
-    person = if person is "me" or not person then msg.message.user.name else person
+  @forTicketKeyForPerson: (key, person, context, includeAttachment=no, remove=no, emit=yes) ->
+    person = if person is "me" or not person then context.message.user.name else person
 
     key = key.toUpperCase()
     chatUser = Utils.lookupChatUser person
@@ -20,18 +20,18 @@ class Watch
         Create.fromKey key
       .then (ticket) ->
         if remove
-          msg.robot.emit "JiraTicketUnwatched", ticket, chatUser, msg.message.room, includeAttachment if emit
+          context.robot.emit "JiraTicketUnwatched", ticket, chatUser, context, includeAttachment if emit
         else
-          msg.robot.emit "JiraTicketWatched", ticket, chatUser, msg.message.room, includeAttachment if emit
+          context.robot.emit "JiraTicketWatched", ticket, chatUser, context, includeAttachment if emit
       .catch (error) ->
-        msg.robot.emit "JiraTicketWatchFailed", error, msg.message.room if emit
+        context.robot.emit "JiraTicketWatchFailed", error, context if emit
         Promise.reject error
     else
       error = "Cannot find chat user `#{person}`"
-      msg.robot.emit "JiraTicketWatchFailed", error, msg.message.room if emit
+      context.robot.emit "JiraTicketWatchFailed", error, context if emit
       Promise.reject error
 
-  @forTicketKeyRemovePerson: (key, person, msg, includeAttachment=no, emit) ->
-    Watch.forTicketKeyForPerson key, person, msg, includeAttachment, yes, emit
+  @forTicketKeyRemovePerson: (key, person, context, includeAttachment=no, emit) ->
+    Watch.forTicketKeyForPerson key, person, context, includeAttachment, yes, emit
 
 module.exports = Watch

@@ -13,13 +13,13 @@ class Create
       method: "POST"
       body: JSON.stringify json
 
-  @with: (project, type, summary, msg, fields, emit=yes) ->
+  @with: (project, type, summary, context, fields, emit=yes) ->
     toState = null
     assignee = null
-    room = Utils.JiraBot.adapter.getRoomName msg
+    room = Utils.JiraBot.adapter.getRoomName context
 
-    if msg.message.user.profile?.email?
-      user = User.withEmail(msg.message.user.profile.email)
+    if context.message.user.profile?.email?
+      user = User.withEmail(context.message.user.profile.email)
     else
       user = Promise.resolve()
 
@@ -38,8 +38,8 @@ class Create
       issue.fields.labels = _(issue.fields.labels).union labels
       issue.fields.description += """
         #{(if description then description + "\n\n" else "")}
-        Reported by #{msg.message.user.name} in ##{room} on #{msg.robot.adapterName}
-        #{Utils.JiraBot.adapter.getPermalink msg}
+        Reported by #{context.message.user.name} in ##{room} on #{context.robot.adapterName}
+        #{Utils.JiraBot.adapter.getPermalink context}
       """
       issue.fields.reporter = reporter if reporter
       issue.fields.priority = id: priority.id if priority
@@ -48,8 +48,8 @@ class Create
       Create.fromKey(json.key)
       .then (ticket) ->
         Promise.all([
-          Transition.forTicketToState ticket, toState, msg, no, no if toState
-          Assign.forTicketToPerson ticket, assignee, msg, no, no if assignee
+          Transition.forTicketToState ticket, toState, context, no, no if toState
+          Assign.forTicketToPerson ticket, assignee, context, no, no if assignee
           ticket
         ])
         .catch (error) ->
@@ -59,24 +59,21 @@ class Create
         [ transition, assignee, ticket ] = results
         roomProject = Config.maps.projects[room]
         if emit
-          Utils.robot.emit "JiraTicketCreated",
+          Utils.robot.emit "JiraTicketCreated", context,
             ticket: ticket
-            room: msg.message.room
             transition: transition
             assignee: assignee
         unless emit and roomProject is project
-          Utils.robot.emit "JiraTicketCreatedElsewhere",
+          Utils.robot.emit "JiraTicketCreatedElsewhere", context,
             ticket: ticket
-            room: msg.message.room
-            user: msg.message.user
             transition: transition
             assignee: assignee
         ticket
       .catch (error) ->
-        msg.robot.logger.error error.stack
+        context.robot.logger.error error.stack
     .catch (error) ->
       Utils.robot.logger.error error.stack
-      Utils.robot.emit "JiraTicketCreationFailed", error, msg.message.room if emit
+      Utils.robot.emit "JiraTicketCreationFailed", error, context if emit
       Promise.reject error
 
   @fromKey: (key) ->
@@ -94,10 +91,10 @@ class Create
     .then (jsons) ->
       new Ticket _(jsons[0]).extend _(jsons[1]).pick("watchers")
 
-  @subtaskFromKeyWith: (key, summary, msg, emit=yes) ->
+  @subtaskFromKeyWith: (key, summary, context, emit=yes) ->
     Create.fromKey(key)
     .then (parent) ->
-      Create.with parent.fields.project.key, "Sub-task", summary, msg,
+      Create.with parent.fields.project.key, "Sub-task", summary, context,
         parent: key: parent.key
         labels: parent.fields.labels or []
         description: "Sub-task of #{key}\n\n"

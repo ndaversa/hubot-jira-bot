@@ -5,7 +5,7 @@ Create = require "./create"
 Utils = require "../utils"
 
 class Clone
-  @fromTicketKeyToProject: (key, project, channel, msg, emit=yes) ->
+  @fromTicketKeyToProject: (key, project, channel, context, emit=yes) ->
     original = null
     cloned = null
     Create.fromKey(key)
@@ -34,7 +34,7 @@ class Clone
       Create.fromKey(json.key)
     .then (ticket) ->
       cloned = ticket
-      room = Utils.JiraBot.adapter.getRoomName msg
+      room = Utils.JiraBot.adapter.getRoomName context
       Utils.fetch "#{Config.jira.url}/rest/api/2/issueLink",
         method: "POST"
         body: JSON.stringify
@@ -46,16 +46,14 @@ class Clone
             key: cloned.key
           comment:
             body: """
-              Cloned by #{msg.message.user.name} in ##{room} on #{msg.robot.adapterName}
-              #{Utils.JiraBot.adapter.getPermalink msg}
+              Cloned by #{context.message.user.name} in ##{room} on #{context.robot.adapterName}
+              #{Utils.JiraBot.adapter.getPermalink context}
             """
     .then ->
       if emit
-        Utils.robot.emit "JiraTicketCreated",
-          ticket: cloned
-          room: msg.message.room
-      Utils.robot.emit "JiraTicketCloned", cloned, channel, key, msg if emit and msg.message.room isnt channel
+        Utils.robot.emit "JiraTicketCreated", context, ticket: cloned
+        Utils.robot.emit "JiraTicketCloned", cloned, channel, key, context if context.message.room isnt channel
     .catch (error) ->
-      Utils.robot.emit "JiraTicketCloneFailed", error, key, msg.message.room if emit
+      Utils.robot.emit "JiraTicketCloneFailed", error, key, context if emit
 
 module.exports = Clone

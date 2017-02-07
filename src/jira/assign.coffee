@@ -4,8 +4,8 @@ Utils = require "../utils"
 
 class Assign
 
-  @forTicketToPerson: (ticket, person, msg, includeAttachment=no, emit=yes) ->
-    person = if person is "me" then msg.message.user.name else person
+  @forTicketToPerson: (ticket, person, context, includeAttachment=no, emit=yes) ->
+    person = if person is "me" then context.message.user.name else person
     chatUser = Utils.lookupChatUser person
 
     if chatUser?.profile?.email?
@@ -21,26 +21,26 @@ class Assign
         Create = require "./create"
         Create.fromKey ticket.key
       .then (ticket) ->
-        Utils.robot.logger.debug "#{ticket.key}:Assigned", msg.message.user.profile.email
-        Utils.cache.put "#{ticket.key}:Assigned", msg.message.user.profile.email
-        msg.robot.emit "JiraTicketAssigned", ticket, chatUser, msg.message.room, includeAttachment if emit
+        Utils.robot.logger.debug "#{ticket.key}:Assigned", context.message.user.profile.email
+        Utils.cache.put "#{ticket.key}:Assigned", context.message.user.profile.email
+        context.robot.emit "JiraTicketAssigned", ticket, chatUser, context, includeAttachment if emit
         text: "<@#{chatUser.id}> is now assigned to this ticket"
         fallback: "@#{chatUser.name} is now assigned to this ticket"
       .catch (error) ->
-        msg.robot.emit "JiraTicketAssignmentFailed", error, msg.message.room if emit
+        context.robot.emit "JiraTicketAssignmentFailed", error, context if emit
         Promise.reject error
     else
       error = "Cannot find chat user `#{person}`"
-      msg.robot.emit "JiraTicketAssignmentFailed", error, msg.message.room if emit
+      context.robot.emit "JiraTicketAssignmentFailed", error, context if emit
       Promise.reject error
 
-  @forTicketKeyToPerson: (key, person, msg, includeAttachment=no, emit=yes) ->
+  @forTicketKeyToPerson: (key, person, context, includeAttachment=no, emit=yes) ->
     Create = require "./create"
     Create.fromKey(key)
     .then (ticket) ->
-      Assign.forTicketToPerson ticket, person, msg, includeAttachment, emit
+      Assign.forTicketToPerson ticket, person, context, includeAttachment, emit
 
-  @forTicketKeyToUnassigned: (key, msg, includeAttachment=no, emit=yes) ->
+  @forTicketKeyToUnassigned: (key, context, includeAttachment=no, emit=yes) ->
     Utils.fetch "#{Config.jira.url}/rest/api/2/issue/#{key}",
       method: "PUT"
       body: JSON.stringify
@@ -51,6 +51,6 @@ class Assign
       Create = require "./create"
       Create.fromKey(key)
       .then (ticket) ->
-        msg.robot.emit "JiraTicketUnassigned", ticket, msg.message.room, no if emit
+        context.robot.emit "JiraTicketUnassigned", ticket, context, no if emit
 
 module.exports = Assign

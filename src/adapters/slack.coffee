@@ -52,10 +52,14 @@ class Slack extends GenericAdapter
       payload.attachments = attachments
 
     payload.text = " " if payload.attachments?.length > 0 and payload.text.length is 0
-    @robot.adapter.send room: room.id, payload if payload.text.length > 0
+    if payload.text.length > 0
+      @robot.adapter.send 
+        room: room.id
+        message: thread_ts: context.message.thread_ts
+      , payload 
 
-  shouldJiraBotHandle: (msg) ->
-    id = msg.callback_id
+  shouldJiraBotHandle: (context) ->
+    id = context.callback_id
     matches = id.match Config.ticket.regexGlobal
 
     if matches and matches[0]
@@ -141,10 +145,10 @@ class Slack extends GenericAdapter
           resolve()
       Utils.Stats.increment "jirabot.slack.button.#{action.name}"
 
-  getPermalink: (msg) ->
-    team = _(msg.robot.adapter.client.rtm.dataStore.teams).pairs()
+  getPermalink: (context) ->
+    team = _(context.robot.adapter.client.rtm.dataStore.teams).pairs()
     if domain = team[0]?[1]?.domain
-      "https://#{domain}.slack.com/archives/#{msg.message.room}/p#{msg.message.id.replace '.', ''}"
+      "https://#{domain}.slack.com/archives/#{context.message.room}/p#{context.message.id.replace '.', ''}"
     else
       ""
 
@@ -167,12 +171,12 @@ class Slack extends GenericAdapter
     actions: actions
     text: details.text
 
-  detectForDuplicates: (project, type, summary, msg) ->
+  detectForDuplicates: (project, type, summary, context) ->
     original = summary
-    create = -> Jira.Create.with project, type, original, msg
+    create = -> Jira.Create.with project, type, original, context
     { summary } = Utils.extract.all summary
 
-    Jira.Search.withQueryForProject(summary, project, msg, 20)
+    Jira.Search.withQueryForProject(summary, project, context, 20)
     .then (results) =>
       if duplicate = Utils.detectPossibleDuplicate summary, results.tickets
         now = Date.now()
@@ -208,7 +212,7 @@ class Slack extends GenericAdapter
             value: "no"
           ]
 
-        @send msg,
+        @send context,
           text: results.text
           attachments: attachments
         , no

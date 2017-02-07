@@ -75,7 +75,7 @@ class GenericAdapter
         @send message: room: user.id, _(message).pick "attachments", "text"
         @incrementDMCountFor user
 
-  getPermalink: (msg) -> ""
+  getPermalink: (context) -> ""
 
   normalizeContext: (context) ->
     if _(context).isString()

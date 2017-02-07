@@ -4,7 +4,7 @@ Utils = require "../utils"
 
 class Search
 
-  @withQueryForProject: (query, project, msg, max=5) ->
+  @withQueryForProject: (query, project, context, max=5) ->
     labels = []
     if Config.labels.regex.test query
       labels = (query.match(Config.labels.regex).map((label) -> label.replace('#', '').trim())).concat(labels)

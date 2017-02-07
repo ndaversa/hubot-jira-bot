@@ -3,29 +3,29 @@ Utils = require "../utils"
 
 class Comment
 
-  @forTicketWith: (ticket, comment, msg, includeAttachment=no, emit=yes) ->
-    room = Utils.JiraBot.adapter.getRoomName msg
+  @forTicketWith: (ticket, comment, context, includeAttachment=no, emit=yes) ->
+    room = Utils.JiraBot.adapter.getRoomName context
     Utils.fetch "#{Config.jira.url}/rest/api/2/issue/#{ticket.key}/comment",
       method: "POST"
       body: JSON.stringify
         body:"""
           #{comment}
 
-          Comment left by #{msg.message.user.name} in ##{room} on #{msg.robot.adapterName}
-          #{Utils.JiraBot.adapter.getPermalink msg}
+          Comment left by #{context.message.user.name} in ##{room} on #{context.robot.adapterName}
+          #{Utils.JiraBot.adapter.getPermalink context}
         """
     .then ->
-      Utils.robot.logger.debug "#{ticket.key}:Comment", msg.message.user.profile.email
-      Utils.cache.put "#{ticket.key}:Comment", msg.message.user.profile.email
-      msg.robot.emit "JiraTicketCommented", ticket, msg.message.room, includeAttachment if emit
+      Utils.robot.logger.debug "#{ticket.key}:Comment", context.message.user.profile.email
+      Utils.cache.put "#{ticket.key}:Comment", context.message.user.profile.email
+      context.robot.emit "JiraTicketCommented", ticket, context, includeAttachment if emit
     .catch (error) ->
-      msg.robot.emit "JiraTicketCommentFailed", error, msg.message.room if emit
+      context.robot.emit "JiraTicketCommentFailed", error, context if emit
       Promise.reject error
 
-  @forTicketKeyWith: (key, comment, msg, includeAttachment=no, emit=yes) ->
+  @forTicketKeyWith: (key, comment, context, includeAttachment=no, emit=yes) ->
     Create = require "./create"
     Create.fromKey(key)
     .then (ticket) ->
-      Comment.forTicketWith ticket, comment, msg, includeAttachment, emit
+      Comment.forTicketWith ticket, comment, context, includeAttachment, emit
 
 module.exports = Comment
