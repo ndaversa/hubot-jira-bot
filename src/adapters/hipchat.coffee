@@ -31,4 +31,20 @@ class Hipchat extends GenericAdapter
   getEnvelope: (context) ->
     return context.envelope
 
+  getUsers: ->
+    @robot.brain.data.users
+
+  # Hipchat adapter stores users in the brain
+  #{
+  # "users": {
+  #   "0000000": {
+  #     "id": "0000000",
+  #     "jid": "111111_0000000@chat.hipchat.com",
+  #     "name": "John Doe",
+  #     "mention_name": "JohnDoe",
+  #     "email_address": "johndoe@example.com"
+  #   },
+  getUserEmail: (user) ->
+    user.email_address
+
 module.exports = Hipchat

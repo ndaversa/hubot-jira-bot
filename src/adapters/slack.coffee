@@ -34,6 +34,9 @@ class Slack extends GenericAdapter
   getUsers: ->
     @robot.adapter.client.rtm.dataStore.users
 
+  getUserEmail: (user) ->
+    user.profile.email
+
   send: (context, message) ->
     payload = text: ""
     room = @getRoom context
