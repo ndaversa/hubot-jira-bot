@@ -20,7 +20,7 @@ class Hipchat extends GenericAdapter
         payload += "#{message.text}\n"
 
       if message.attachments
-        for attachment in message.attachments
+        for attachment in message.attachments when attachment != undefined
           payload += "#{attachment.fallback}\n"
     else
       Utils.Stats.increment "jirabot.message.empty"
