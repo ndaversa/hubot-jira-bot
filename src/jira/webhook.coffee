@@ -35,7 +35,9 @@ class Webhook
     if Config.jira.mentionRegex.test event.comment.body
       @onJiraMention event, event.comment.body.match(Config.jira.mentionRegex)[1], event.comment.body
     Create = require "./create"
-    Create.fromKey(event.issue.key)
+    regex = /rest\/api\/2\/issue\/(\d*)\//
+    [ __, key] = event.comment.self.match regex
+    Create.fromKey(key)
     .then (ticket) =>
       if author = Utils.cache.get "#{ticket.key}:Comment"
         User.withEmail(author)
