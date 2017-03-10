@@ -1,7 +1,7 @@
 {
   "name": "hubot-jira-bot",
   "description": "A hubot script for all things JIRA, see README.md for details",
-  "version": "7.3.0",
+  "version": "7.3.1",
   "authors": [
     "Nino D'Aversa <nino@ndaversa.com>"
   ],
