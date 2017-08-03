@@ -30,8 +30,7 @@ class Utils
         throw error
     .then (response) ->
       length = response.headers.get 'content-length'
-      if response.status is 204
-        length = 0
+      length = 0 if response.status is 204
       response.json() unless length is "0" or length is 0
     .catch (error) ->
       Utils.robot.logger.error error
