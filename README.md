@@ -4,14 +4,14 @@ them, transition them thru different states, comment on them, rank
 them up or down, start or stop watching them or change who is
 assigned to a ticket. Also, notifications for assignments, mentions and watched tickets.
 
-###Dependencies:
+### Dependencies:
 - moment
 - octokat
 - node-fetch
 - underscore
 - fuse.js
 
-###Configuration:
+### Configuration:
 - `HUBOT_GITHUB_ORG` - Github Organization or Github User
 - `HUBOT_GITHUB_TOKEN` - Github Application Token
 - `HUBOT_JIRA_GITHUB_DISABLED` - Set to true if you wish to disable github integration
@@ -34,7 +34,7 @@ the user profile.  Frequently, users may log in using an email address such
 as 'bob@somewhere.com' or a stem, such as 'bob'; these may or may not match
 the username in JIRA.
 
-####A note about chat:jira user lookup
+#### A note about chat:jira user lookup
 In order for direct messages (notifications) and a few other
 username based commands to work JiraBot attempts to match JIRA users with chat
 users by email address. This has been tested primarily on the [Hubot
@@ -42,7 +42,7 @@ Slack adapter](https://github.com/slackhq/hubot-slack) and may not work without 
 The take away is that you must have the same e-mail address on both
 services for this to work as expected.
 
-####Notifications via Webhooks
+#### Notifications via Webhooks
 In order to receive JIRA notifications you will need to setup a webhook.
 You can find instructions to do so on [Atlassian's
 website](https://developer.atlassian.com/jiradev/jira-apis/webhooks).
@@ -61,27 +61,27 @@ the following notifications are available:
     * The ticket is closed
     * A new comment is left on the ticket
 
-###The Definitive hubot JIRA Manual
+### The Definitive hubot JIRA Manual
 @hubot can help you *search* for JIRA tickets, *open*
 them, *transition* them thru different states, *comment* on them, *rank*
 them _up_ or _down_, start or stop *watching* them or change who is
 *assigned* to a ticket
 
 
-####Opening Tickets
+#### Opening Tickets
 > hubot [`<project>`] `<type>` `<title>` [`<description>`]
 
 You can omit `<project>` when using the command in the desired projects channel
-Otherwise you can specify one of the following for `<project>`: `#web`,  `#android`,  `#ios`,  `#platform`
+Otherwise you can specify one of the following for `<project>`: `# web`,  `# android`,  `# ios`,  `# platform`
 `<type>` is one of the following: `story`,  `bug`,  `task`
 `<description>` is optional and is surrounded with single or triple backticks
 and can be used to provide a more detailed description for the ticket.
 `<title>` is a short summary of the ticket
 
-#####Optional `<title>` Attributes
+##### Optional `<title>` Attributes
 
 _Labels_: include one or many hashtags that will become labels on the jira ticket
-     `#quick #techdebt`
+     `# quick # techdebt`
 
 _Assignment_: include a handle that will be used to assign the ticket after creation
      `@username`
@@ -93,22 +93,22 @@ _Priority_: include the ticket priority to be assigned upon ticket creation
     `!blocker`,  `!critical`,  `!major`,  `!minor`,  `!trivial`
 
 
-####Creating Sub-tasks
+#### Creating Sub-tasks
 > hubot subtask `<ticket>` `<summary>`
 
 Where `<ticket>` is the parent JIRA ticket number
 and `<summary>` is a short summary of the task
 
 
-####Cloning Tickets
+#### Cloning Tickets
 >`<ticket>` clone to `<channel>`
 > `<ticket>` > `<channel>`
 
 Where `<ticket>` is the JIRA ticket number
-and `<channel>` is one of the following: `#web`,  `#android`,  `#ios`,  `#platform`
+and `<channel>` is one of the following: `# web`,  `# android`,  `# ios`,  `# platform`
 
 
-####Ranking Tickets
+#### Ranking Tickets
 >`<ticket>` rank top
 > `<ticket>` rank bottom
 
@@ -116,27 +116,27 @@ Where `<ticket>` is the JIRA ticket number. Note this will rank it the top
 of column for the current state
 
 
-####Commenting on a Ticket
+#### Commenting on a Ticket
 >`<ticket>` < `<comment>`
 
 Where `<ticket>` is the JIRA ticket number
 and `<comment>` is the comment you wish to leave on the ticket
 
 
-####Adding labels to a Ticket
->`<ticket>` < `#label1 #label2 #label3`
+#### Adding labels to a Ticket
+>`<ticket>` < `# label1 # label2 # label3`
 
 Where `<ticket>` is the JIRA ticket number
 
 
-####Assigning Tickets
+#### Assigning Tickets
 >`<ticket>` assign `@username`
 
 Where `<ticket>` is the JIRA ticket number
 and `@username` is a user handle
 
 
-####Transitioning Tickets
+#### Transitioning Tickets
 >`<ticket>` to `<state>`
 > `<ticket>` >`<state>`
 
@@ -144,7 +144,7 @@ Where `<ticket>` is the JIRA ticket number
 and `<state>` is one of the following: `triage`,  `icebox`,  `backlog`,  `devready`,  `inprogress`,  `design`
 
 
-####Watching Tickets
+#### Watching Tickets
 >`<ticket>` watch [`@username]`]
 
 Where `<ticket>` is the JIRA ticket number
@@ -152,7 +152,7 @@ Where `<ticket>` is the JIRA ticket number
 the watcher on the ticket, if omitted the message author will become the watcher
 
 
-####Ticket Notifications
+#### Ticket Notifications
 
 Whenever you begin watching a JIRA ticket you will be notified (via a direct
 message from @hubot) whenever any of the following events occur:
@@ -176,11 +176,11 @@ or if you wish to re-enable
 > jira enable notifications
 
 
-####Searching Tickets
+#### Searching Tickets
 > hubot jira search `<term>`
 
-#####Optional `<term>` Attributes
+##### Optional `<term>` Attributes
  _Labels_: include one or many hashtags that will become labels included in the search
-      `#quick #techdebt`
+      `# quick # techdebt`
 
-Where `<term>` is some text contained in the ticket you are looking for##Documentation with Configuration examples from above
+Where `<term>` is some text contained in the ticket you are looking for## Documentation with Configuration examples from above
