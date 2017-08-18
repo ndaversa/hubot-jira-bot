@@ -155,7 +155,8 @@ class JiraBot
 
     # Comment notifications for watchers
     @robot.on "JiraWebhookTicketComment", (ticket, comment) =>
-      @adapter.dm Utils.lookupChatUsersWithJira(ticket.watchers),
+      watchers = (watcher for watcher in ticket.watchers when watcher.name isnt comment.author.name)
+      @adapter.dm Utils.lookupChatUsersWithJira(watchers),
         text: """
           A ticket you are watching has a new comment from #{comment.author.displayName}:
           ```
@@ -171,6 +172,7 @@ class JiraBot
     @robot.on "JiraWebhookTicketComment", (ticket, comment) =>
       return unless ticket.fields.assignee
       return if ticket.watchers.length > 0 and _(ticket.watchers).findWhere name: ticket.fields.assignee.name
+      return if ticket.fields.assignee.name is comment.author.name
 
       @adapter.dm Utils.lookupChatUsersWithJira(ticket.fields.assignee),
         text: """
