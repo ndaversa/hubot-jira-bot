@@ -399,6 +399,22 @@ class JiraBot
         @robot.logger.error error.stack
       Utils.Stats.increment "command.jirabot.search"
 
+    #Query
+    @robot.respond Config.query.regex, (context) =>
+      context.finish()
+      [__, query] = context.match
+      Jira.Query.withQuery(query)
+      .then (results) =>
+        attachments = (ticket.toAttachment(no) for ticket in results.tickets)
+        @send context,
+          text: results.text
+          attachments: attachments
+        , no
+      .catch (error) =>
+        @send context, "Unable to execute query `#{query}` :sadpanda:"
+        @robot.logger.error error.stack
+      Utils.Stats.increment "command.jirabot.query"
+
     #Transition
     if Config.maps.transitions
       @robot.hear Config.transitions.regex, (context) =>

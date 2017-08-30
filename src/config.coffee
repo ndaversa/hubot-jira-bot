@@ -128,7 +128,10 @@ class Config
     regex: /(?:\s+|^)#\S+/g
 
   @search:
-    regex: /(?:j|jira) (?:s|search|find|query) (.+)/
+    regex: /(?:j|jira) (?:s|search|find) (.+)/
+
+  @query:
+    regex: /(?:j|jira) (?:q|query) (.+)/
 
   @help:
     regex: /(?:help jira|jira help)(?: (.*))?/
