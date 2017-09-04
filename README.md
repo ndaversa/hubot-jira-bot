@@ -15,6 +15,7 @@ assigned to a ticket. Also, notifications for assignments, mentions and watched 
 - `HUBOT_GITHUB_ORG` - Github Organization or Github User
 - `HUBOT_GITHUB_TOKEN` - Github Application Token
 - `HUBOT_JIRA_GITHUB_DISABLED` - Set to true if you wish to disable github integration
+- `HUBOT_JIRA_MENTIONS_DISABLED` - Set to true if you wish to disable posting tickets in response to mentions in normal messages
 - `HUBOT_JIRA_PASSWORD`
 - `HUBOT_JIRA_PRIORITIES_MAP` `[{"name":"Blocker","id":"1"},{"name":"Critical","id":"2"},{"name":"Major","id":"3"},{"name":"Minor","id":"4"},{"name":"Trivial","id":"5"}]`
 - `HUBOT_JIRA_PROJECTS_MAP`  `{"web":"WEB","android":"AN","ios":"IOS","platform":"PLAT"}`
@@ -184,3 +185,10 @@ or if you wish to re-enable
       `# quick # techdebt`
 
 Where `<term>` is some text contained in the ticket you are looking for## Documentation with Configuration examples from above
+
+
+#### Quering Tickets with JQL
+> hubot jira query `<jql>`
+
+Where `<jql>` is a valid JQL query
+"""
