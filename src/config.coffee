@@ -3,6 +3,7 @@
 #   HUBOT_GITHUB_TOKEN - Github Application Token
 #   HUBOT_JIRA_DUPLICATE_DETECTION - Set to true if wish to detect duplicates when creating new issues
 #   HUBOT_JIRA_GITHUB_DISABLED - Set to true if you wish to disable github integration
+#   HUBOT_JIRA_MENTIONS_DISABLED - Set to true if you wish to disable posting tickets in response to mentions in normal messages
 #   HUBOT_JIRA_PASSWORD
 #   HUBOT_JIRA_PRIORITIES_MAP [{"name":"Blocker","id":"1"},{"name":"Critical","id":"2"},{"name":"Major","id":"3"},{"name":"Minor","id":"4"},{"name":"Trivial","id":"5"}]
 #   HUBOT_JIRA_PROJECTS_MAP  {"web":"WEB","android":"AN","ios":"IOS","platform":"PLAT"}
@@ -53,6 +54,7 @@ class Config
       url: process.env.HUBOT_JIRA_URL
       username: process.env.HUBOT_JIRA_USERNAME
       password: process.env.HUBOT_JIRA_PASSWORD
+      mentionsDisabled: !!process.env.HUBOT_JIRA_MENTIONS_DISABLED
       expand: "transitions"
       fields: ["issuetype", "status", "assignee", "reporter", "summary", "description", "labels", "project"]
       mentionRegex: /(?:\[~([\w._-]*)\])/i

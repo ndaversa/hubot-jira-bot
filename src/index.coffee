@@ -508,9 +508,10 @@ class JiraBot
 
       Utils.Stats.increment "command.jirabot.create"
 
-    #Mention ticket by url or key
-    @robot.listen @matchJiraTicket, (context) =>
-      @prepareResponseForJiraTickets context
-      Utils.Stats.increment "command.jirabot.mention.ticket"
+    unless Config.jira.mentionsDisabled
+      #Mention ticket by url or key
+      @robot.listen @matchJiraTicket, (context) =>
+        @prepareResponseForJiraTickets context
+        Utils.Stats.increment "command.jirabot.mention.ticket"
 
 module.exports = JiraBot
