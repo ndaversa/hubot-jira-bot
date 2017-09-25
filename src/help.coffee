@@ -141,6 +141,13 @@ class Help
     Where `<term>` is some text contained in the ticket you are looking for
     """
 
+    query = """
+    *Querying Tickets using JQL*
+    > #{robot.name} jira query `<jql>`
+
+    Where `<jql>` is a valid JQL query
+    """
+
     if _(["report", "open", "file", "subtask", _(Config.maps.types).keys()]).chain().flatten().contains(topic).value()
       responses = [ opening, subtask ]
     else if _(["clone", "duplicate", "copy"]).contains topic
@@ -157,10 +164,12 @@ class Help
       responses = [ transition ]
     else if _(["search", "searching"]).contains topic
       responses = [ search ]
+    else if _(["query", "querying"]).contains topic
+      responses = [ query ]
     else if _(["watch", "watching", "notifications", "notify"]).contains topic
       responses = [ watch, notifications ]
     else
-      responses = [ overview, opening, subtask, clone, rank, comment, labels, assignment, transition, watch, notifications, search ]
+      responses = [ overview, opening, subtask, clone, rank, comment, labels, assignment, transition, watch, notifications, search, query ]
 
     return "\n#{responses.join '\n\n\n'}"
 

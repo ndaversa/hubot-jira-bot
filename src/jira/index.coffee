@@ -5,6 +5,7 @@ Create = require "./create"
 Labels = require "./labels"
 Rank = require "./rank"
 Search = require "./search"
+Query = require "./query"
 Ticket = require "./ticket"
 Transition = require "./transition"
 User = require "./user"
@@ -19,6 +20,7 @@ module.exports = {
   Labels
   Rank
   Search
+  Query
   Ticket
   Transition
   User
