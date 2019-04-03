@@ -21,8 +21,8 @@ class Assign
         Create = require "./create"
         Create.fromKey ticket.key
       .then (ticket) ->
-        Utils.robot.logger.debug "#{ticket.key}:Assigned", context.message.user.profile.email
-        Utils.cache.put "#{ticket.key}:Assigned", context.message.user.profile.email
+        Utils.robot.logger.debug "#{ticket.key}:Assigned", context.message.user.email_address
+        Utils.cache.put "#{ticket.key}:Assigned", context.message.user.email_address
         context.robot.emit "JiraTicketAssigned", ticket, chatUser, context, includeAttachment if emit
         text: "<@#{chatUser.id}> is now assigned to this ticket"
         fallback: "@#{chatUser.name} is now assigned to this ticket"
