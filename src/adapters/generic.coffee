@@ -98,4 +98,7 @@ class GenericAdapter
   getUsers: ->
     @robot.brain.users()
 
+  getUserEmail: (user) ->
+    user.email || ''
+
 module.exports = GenericAdapter
