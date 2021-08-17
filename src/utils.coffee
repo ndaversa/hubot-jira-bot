@@ -29,9 +29,9 @@ class Utils
         error.response = response
         throw error
     .then (response) ->
-      length = response.headers.get 'content-length'
-      length = 0 if response.status is 204
-      response.json() unless length is "0" or length is 0
+      response.text()
+    .then (text) ->
+      JSON.parse(text) if text
     .catch (error) ->
       Utils.robot.logger.error error
       Utils.robot.logger.error error.stack
