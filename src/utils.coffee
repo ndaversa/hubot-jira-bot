@@ -59,7 +59,7 @@ class Utils
 
   @lookupUserWithJira: (jira, fallback=no) ->
     users = Utils.JiraBot.adapter.getUsers()
-    result = (users[user] for user of users when users[user].profile.email is jira.emailAddress) if jira
+    result = (users[user] for user of users when Utils.JiraBot.adapter.getUserEmail(users[user]) is jira.emailAddress) if jira
     if result?.length is 1
       return if fallback then result[0].name else "<@#{result[0].id}>"
     else if jira

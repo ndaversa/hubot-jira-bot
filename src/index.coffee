@@ -38,6 +38,8 @@ class JiraBot
     switch @robot.adapterName
       when "slack"
         @adapter = new Adapters.Slack @robot
+      when "hipchat"
+        @adapter = new Adapters.Hipchat @robot
       else
         @adapter = new Adapters.Generic @robot
 
